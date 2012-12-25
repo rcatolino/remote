@@ -12,7 +12,7 @@ EOBJ=tcpserver.o remote-base.o
 
 $(EXE): $(EOBJ)
 	@echo building $<
-	$(EDL) -o $(EXE) $(EDLFLAGS) $(EOBJ) -lgmem
+	$(EDL) -o $(EXE) $(EDLFLAGS) $(EOBJ)
 	@echo done
 
 %.o : %.c *.h

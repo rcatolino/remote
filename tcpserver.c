@@ -16,6 +16,20 @@
 
 struct sockaddr_in client_address;
 
+static int checkRet(int ret, int socketd) {
+  if (ret==0){
+    // Client is shutting down.
+    closeClient(socketd);
+    return -1;
+  }else if(ret==-1){
+    perror("recv on socket failed");
+    return -1;
+  }else{
+    debug("Received %d bytes.\n", ret);
+  }
+  return 0;
+}
+
 int initServer(int listen_port){
 
 	int listen_socketd;
@@ -49,7 +63,7 @@ int initServer(int listen_port){
 		perror("listen ");
 		return -1;
 	}
-	printf("Server listenning on port %d\n",ntohs(port));
+	debug("Server listenning on port %d\n",ntohs(port));
   return listen_socketd;
 }
 
@@ -64,66 +78,53 @@ int waitClient(int listenSocket){
   if (request_socketd == -1)
   {
     perror("accept ");
-    return -1;	
+    return -1;
   }
-  printf("new connection\n");
-  printf("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
-  printf("\tremote port : %d\n", ntohs(client_address.sin_port));
+  debug("new connection\n");
+  debug("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
+  debug("\tremote port : %d\n", ntohs(client_address.sin_port));
 
 	return request_socketd;
 }
 
 void closeClient(int clientSock){
 
-  printf("Client deconected\n");
+  debug("Client deconected\n");
   shutdown(clientSock, SHUT_RDWR);
 	close(clientSock);
 }
-int receive(int socket, char * buff, int size){
+
+int receive(int socketd, char * buff, int size){
   size_t ret = 0;
+  size_t cmdSize = 0;
   size_t bytesRcv = 0;
-  int i=0;
-  ret=recv(socket,(void*)(buff),size,0);
-  if (ret==0){
-    closeClient(socket);
+  // Receive the size of the command.
+  ret=recv(socketd, (void*)(&cmdSize), sizeof(cmdSize), 0);
+  if (checkRet(ret, socketd) == -1 || cmdSize > MAX_CMD_SIZE) {
+    if (cmdSize > MAX_CMD_SIZE) debug("Invalid command size\n");
     return -1;
-  }else if(ret==-1){
-    perror("recv on socket failed");
-    return -1;
-  }else{
-    printf("Received %d bytes.\n",ret);
   }
-  /*
-  for (bytesRcv=0; bytesRcv<size; ){
-    ret=recv(socket,(void*)(buff+bytesRcv),size-ret,0);
+
+  debug("New command to be received\n");
+  for (bytesRcv=0; bytesRcv<cmdSize; ){
+    ret=recv(socketd, (void*)(buff+bytesRcv), cmdSize-bytesRcv, 0);
     bytesRcv+=ret;
-    if (ret==0){
-      closeClient(socket);
+    if (checkRet(ret, socketd) == -1 || bytesRcv > MAX_CMD_SIZE) {
       return -1;
-    }else if(ret==-1){
-      perror("recv on socket failed");
-      return -1;
-    }else{
-      printf("Received %d bytes.\n",ret);
-      for (i=0; i<ret; i++){
-        //printf(DEBUG,"%hhx ",buff[i]);
-      }
     }
   }
-  */
+
+  debug("New command received\n");
   return ret;
 }
 
-int transmit(int socket, char * buff, int size){
-int i;
-	for (i=0; i<size; i++){
-        //printf("%hhx ",buff[i]);
-      }
-  if (send(socket, buff, size,0)==-1)
+int transmit(int socketd, char * buff, int size){
+  if (send(socketd, buff, size,0)==-1)
   {
     perror("send on socket failed");
     return -1;
   }
+
   return 0;
 }
 

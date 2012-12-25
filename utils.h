@@ -7,4 +7,8 @@
   #define debug(...)
 #endif
 
+#define MAX_CMD_SIZE 64
+
+#define DEFAULT_PORT 52000
+
 #endif

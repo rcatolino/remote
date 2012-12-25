@@ -10,10 +10,10 @@ int waitClient(int listenSocket);
 void closeClient(int clientSock);
 // Terminates a connection.
 
-int receive(int socket, char * buff, int size);
+int receive(int socketd, char * buff, int size);
 // Waits for data on the connection. Blocking.
 
-int transmit(int socket, char * buff, int size){
+int transmit(int socketd, char * buff, int size);
 // Sends data on the connection. Blocking.
 
 #endif
