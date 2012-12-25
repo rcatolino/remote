@@ -1,0 +1,129 @@
+// Listen for commands
+#include "tcpserver.h"
+#include "utils.h"
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <ifaddrs.h>
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+
+struct sockaddr_in client_address;
+
+int initServer(int listen_port){
+
+	int listen_socketd;
+	uint16_t port;
+	struct sockaddr_in own_address;
+	int options = 1;
+
+	port = htons(listen_port);
+	listen_socketd = socket(AF_INET, SOCK_STREAM, 0);
+
+	if(listen_socketd == -1) {
+		perror("socket creation ");
+		return -1; //fail to create new socket
+	}
+	if (setsockopt(listen_socketd,SOL_SOCKET,SO_REUSEADDR,&options,4)) {
+		perror("setsockopt ");
+	}
+	memset(&own_address,0,sizeof(struct sockaddr_in)); //clear struct
+	own_address.sin_family = AF_INET; //ipv4
+	own_address.sin_port = port; //listening port
+	own_address.sin_addr.s_addr = INADDR_ANY; //own address... 
+
+	if (bind(listen_socketd, (struct sockaddr *) &own_address, sizeof(own_address)) < 0) {
+		//fail to name socket;
+		perror("bind ");
+		return -1;
+	}
+
+	if (listen(listen_socketd,1) < 0)
+	{
+		perror("listen ");
+		return -1;
+	}
+	printf("Server listenning on port %d\n",ntohs(port));
+  return listen_socketd;
+}
+
+int waitClient(int listenSocket){
+
+	int request_socketd;
+
+	socklen_t client_size = sizeof(client_address);
+
+  request_socketd = accept(listenSocket,\
+    (struct sockaddr *) &client_address, &client_size);
+  if (request_socketd == -1)
+  {
+    perror("accept ");
+    return -1;	
+  }
+  printf("new connection\n");
+  printf("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
+  printf("\tremote port : %d\n", ntohs(client_address.sin_port));
+
+	return request_socketd;
+}
+
+void closeClient(int clientSock){
+
+  printf("Client deconected\n");
+  shutdown(clientSock, SHUT_RDWR);
+	close(clientSock);
+}
+int receive(int socket, char * buff, int size){
+  size_t ret = 0;
+  size_t bytesRcv = 0;
+  int i=0;
+  ret=recv(socket,(void*)(buff),size,0);
+  if (ret==0){
+    closeClient(socket);
+    return -1;
+  }else if(ret==-1){
+    perror("recv on socket failed");
+    return -1;
+  }else{
+    printf("Received %d bytes.\n",ret);
+  }
+  /*
+  for (bytesRcv=0; bytesRcv<size; ){
+    ret=recv(socket,(void*)(buff+bytesRcv),size-ret,0);
+    bytesRcv+=ret;
+    if (ret==0){
+      closeClient(socket);
+      return -1;
+    }else if(ret==-1){
+      perror("recv on socket failed");
+      return -1;
+    }else{
+      printf("Received %d bytes.\n",ret);
+      for (i=0; i<ret; i++){
+        //printf(DEBUG,"%hhx ",buff[i]);
+      }
+    }
+  }
+  */
+  return ret;
+}
+
+int transmit(int socket, char * buff, int size){
+int i;
+	for (i=0; i<size; i++){
+        //printf("%hhx ",buff[i]);
+      }
+  if (send(socket, buff, size,0)==-1)
+  {
+    perror("send on socket failed");
+    return -1;
+  }
+  return 0;
+}
+
