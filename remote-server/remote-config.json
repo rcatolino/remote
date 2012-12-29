@@ -1,0 +1,47 @@
+[
+  {
+    "app" : "clementine",
+    "dbus-name" : "org.mpris.clementine",
+    "PLAY" : {
+      "path" : "/Player",
+      "method" : "org.freedesktop.MediaPlayer.Play"
+    },
+    "PAUSE" : {
+      "path" : "/Player",
+      "method" : "org.freedesktop.MediaPlayer.Pause"
+    },
+    "STOP" : {
+      "path" : "/Player",
+      "method" : "org.freedesktop.MediaPlayer.Stop"
+    },
+    "PREV" : {
+      "path" : "/Player",
+      "method" : "org.freedesktop.MediaPlayer.Next"
+    },
+    "NEXT" : {
+      "path" : "/Player",
+      "method" : "org.freedesktop.MediaPlayer.Prev"
+    }
+  },
+  {
+    "app" : "kmix",
+    "dbus-name" : "org.kde.kmix",
+    "VOLUMEUP" : {
+      "path" : "/Mixers/0/Master_0",
+      "method" : "org.kde.KMix.Control.increaseVolume"
+    },
+    "VOLUMEDOWN" : {
+      "path" : "/Mixers/0/Master_0",
+      "method" : "org.kde.KMix.Control.decreaseVolume"
+    }
+  },
+  {
+    "app" : "power-management",
+    "dbus-name" : "org.freedesktop.PowerManagement",
+    "SLEEP" : {
+      "path" : "/org/freedesktop/PowerManagement",
+      "method" : "org.freedesktop.PowerManagement.Suspend"
+    }
+  }
+]
+

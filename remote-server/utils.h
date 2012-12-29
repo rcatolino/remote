@@ -8,6 +8,7 @@
 #endif
 
 #define MAX_CMD_SIZE 64
+#define MAX_DBUS_BUFF 1024
 
 #define DEFAULT_PORT 52000
 

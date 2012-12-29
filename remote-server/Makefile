@@ -8,11 +8,12 @@ EXE=remote-serv #Binary name
 DEFINES=DEBUG #Preprocessor definitions
 ECHO=@echo
 
-EOBJ=tcpserver.o remote-base.o
+EOBJ=tcpserver.o remote-base.o config.o
+LIBS=-ljansson
 
 $(EXE): $(EOBJ)
 	@echo building $<
-	$(EDL) -o $(EXE) $(EDLFLAGS) $(EOBJ)
+	$(EDL) -o $(EXE) $(EDLFLAGS) $(EOBJ) $(LIBS)
 	@echo done
 
 %.o : %.c *.h

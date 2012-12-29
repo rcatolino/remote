@@ -19,7 +19,6 @@ struct sockaddr_in client_address;
 static int checkRet(int ret, int socketd) {
   if (ret==0){
     // Client is shutting down.
-    closeClient(socketd);
     return -1;
   }else if(ret==-1){
     perror("recv on socket failed");
