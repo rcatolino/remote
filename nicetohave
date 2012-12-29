@@ -1,3 +1,5 @@
-- Authentification
-- Feedback
-- Server-side app dbus config file
+- Authentication
+- Feedback from an app to the client
+- More controls on the client!!!
+- an actual dbus connection :)
+- tests...
