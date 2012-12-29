@@ -2,7 +2,6 @@ package com.rcatolino.remoteclient;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
@@ -26,9 +25,17 @@ import java.util.concurrent.SynchronousQueue;
 public class RemoteClient extends Activity {
 
   private static final String LOGTAG = "RemoteClient";
+
+  private static final String playCmd = "PLAY";
+  private static final String pauseCmd = "PAUSE";
+  private static final String stopCmd = "STOP";
+  private static final String nextCmd = "NEXT";
+  private static final String prevCmd = "PREV";
+
   private Sender sender = null;
   private DialogListener dialogListener;
   private boolean connected = false;
+  private Activity mainActivity;
 
   private Button connectB;
   private ImageButton playPauseB;
@@ -39,11 +46,12 @@ public class RemoteClient extends Activity {
     private OutputStream output;
     private boolean stopped = false;
     private Thread execThread;
+    private Socket sock;
 
     public Sender(String host, int port) throws IOException, IllegalArgumentException {
       toSend = new SynchronousQueue<String>();
       // Open connection :
-      Socket sock = new Socket();
+      sock = new Socket();
       InetSocketAddress adress = new InetSocketAddress(host, port);
       if (adress.isUnresolved()) {
         Log.d(LOGTAG, "Adress is unresolved");
@@ -134,7 +142,17 @@ public class RemoteClient extends Activity {
       }
 
       Log.d(LOGTAG, "Running finished");
-      setDisconnected();
+      try {
+        sock.close();
+      } catch (Exception e) {
+        Log.d(LOGTAG, "Error on sock.close : " + e.getMessage());
+      }
+
+      mainActivity.runOnUiThread(new Runnable() {
+        public void run() {
+          setDisconnected();
+        }
+      });
       Log.d(LOGTAG, "Set as disconnected");
     }
 
@@ -149,16 +167,18 @@ public class RemoteClient extends Activity {
 
     public void onDismiss(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
-      if (d.shouldConnect()) {
+      if (d.shouldConnect() && !connected) {
         Log.d(LOGTAG, "Connecting to " + d.getHost() + ":" + d.getPort());
         try {
           sender = new Sender(d.getHost(), d.getPort());
           setConnected(d.getHost(), d.getPort());
         } catch (Exception ex) {
-          Log.d(LOGTAG, "Error on connectToHost() : " + ex.getMessage());
+          Log.d(LOGTAG, "Error on sender() : " + ex.getMessage());
           connectB.setText(R.string.unco);
-          sender.stop();
-          sender = null;
+          if (sender != null) {
+            sender.stop();
+            sender = null;
+          }
           return;
         }
       }
@@ -170,6 +190,7 @@ public class RemoteClient extends Activity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    mainActivity = this;
     dialogListener = new DialogListener();
     setContentView(R.layout.main);
 
@@ -195,21 +216,6 @@ public class RemoteClient extends Activity {
     connectD.show();
   }
 
-  public Socket connectToHost(String host, int port) throws IllegalArgumentException, IOException {
-    Socket sock = new Socket();
-    InetSocketAddress adress = new InetSocketAddress(host, port);
-    if (adress.isUnresolved()) {
-      Log.d(LOGTAG, "Adress is unresolved");
-      throw new IllegalArgumentException("Bad adress");
-    }
-
-    connectB.setText("Connecting...");
-    sock.connect(adress, 1000);
-
-    return sock;
-
-  }
-
   public void playPause(View playPauseButton) {
     if (!connected) {
       Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
@@ -222,7 +228,7 @@ public class RemoteClient extends Activity {
       return;
     }
 
-    sender.sendCommand("play");
+    sender.sendCommand(playCmd);
   }
 
   private void setConnected(String host, int port) {
@@ -249,6 +255,7 @@ public class RemoteClient extends Activity {
     connected = false;
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
+    sender = null;
   }
 
 }
