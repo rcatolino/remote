@@ -7,9 +7,10 @@ EDLFLAGS=-Wall #Linker options
 EXE=remote-serv #Binary name
 DEFINES=DEBUG #Preprocessor definitions
 ECHO=@echo
+INCLUDES=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
 
 EOBJ=tcpserver.o remote-base.o config.o
-LIBS=-ljansson
+LIBS=-ljansson -lglib-2.0
 
 $(EXE): $(EOBJ)
 	@echo building $<
@@ -18,7 +19,7 @@ $(EXE): $(EOBJ)
 
 %.o : %.c *.h
 	@echo building $< ...
-	$(CC) $(CCFLAGS) -c -D $(DEFINES) $<
+	$(CC) $(CCFLAGS) -c -D $(DEFINES) $(INCLUDES) $<
 	@echo done
 
 clean:

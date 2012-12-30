@@ -12,4 +12,6 @@
 
 #define DEFAULT_PORT 52000
 
+#define DEFAULT_CONFIG "remote-config.json"
+
 #endif

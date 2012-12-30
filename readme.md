@@ -5,7 +5,8 @@ features using an android phone as a remote control.
 Remote should mainly allow to control media playing.
 
 ## Build
-To build the server, go into remote-server and `make`.
+To build the server, you will need libjansson-dev and glib2.0. Once the
+dependencies satisfied, go into remote-server and `make`.
 
 To build the client, you will need a working [android-sdk](http://developer.android.com/sdk/index.html).
 You should then copy the local.properties.default file to local.properties,
