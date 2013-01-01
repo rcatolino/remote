@@ -172,6 +172,7 @@ int createConnection(struct proxyParams * pp)
   }
 
   pp->proxy = proxy;
+  debug("proxy adress : %p, object type : %s\n", pp->proxy, G_OBJECT_TYPE_NAME(pp->proxy));
   g_signal_connect(proxy, "g-properties-changed",
                    G_CALLBACK (on_properties_changed),
                    NULL);
@@ -184,11 +185,29 @@ int createConnection(struct proxyParams * pp)
   printProxy(pp);
 
  out:
-  if (proxy != NULL)
-    g_object_unref (proxy);
   g_free (opt_name);
   g_free (opt_object_path);
   g_free (opt_interface);
 
   return 0;
+}
+
+void call(struct callParams * cp) {
+
+  GError * error;
+  GVariant * ret;
+  debug("proxy adress : %p, object type : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy));
+  error = NULL;
+  ret = g_dbus_proxy_call_sync(G_DBUS_PROXY(cp->proxy->proxy),
+                    cp->method,
+                    NULL,
+                    G_DBUS_CALL_FLAGS_NONE,
+                    -1,
+                    NULL,
+                    &error);
+  if (ret == NULL) {
+    debug("Error calling method : %s\n", error->message);
+  } else {
+    g_variant_unref(ret);
+  }
 }

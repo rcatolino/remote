@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
 
   debug("Connection created!\n");
   while (1) {
+    struct callParams * cp = NULL;
     int clients = waitClient(socketd);
     if (clients == -1) {
       // We can't connect to a client.
@@ -92,7 +93,11 @@ int main(int argc, char *argv[]) {
 
       buff[ret]='\0';
       debug("received : %s\n", buff);
-      //translateCmd(buff, dbus_buff);
+      cp = g_hash_table_lookup(call_table, buff);
+      if (cp) {
+        debug("Found method %s() in %s associated with command %s. Calling...\n", cp->method, cp->proxy->name, buff);
+        call(cp);
+      }
     }
   }
 

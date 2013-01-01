@@ -5,4 +5,6 @@
 
 int createConnection(struct proxyParams * pp);
 
+int call(struct callParams * cp);
+
 #endif
