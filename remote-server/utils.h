@@ -2,6 +2,7 @@
 #define UTILS_H__
 
 #include <gio/gio.h>
+#include <stdio.h>
 
 #ifdef DEBUG
   #define debug(...) printf(__VA_ARGS__)

@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "dbusif.h"
 #include "tcpserver.h"
 #include "utils.h"
 
@@ -24,6 +25,8 @@ int main(int argc, char *argv[]) {
 
   GOptionContext *opt_context;
   GError *error;
+
+  g_type_init();
 
   debug("Parsing options...\n");
 
@@ -52,22 +55,25 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
-  if(parseConfig(&pp, call_table) == -1) {
+  if(parseConfig(&pp, call_table) == -1 || pp == NULL) {
     // Bad config file, proxy/method specifications error.
     goto out;
   }
 
   debug("Config file parsed!\nCreating proxies...\n");
-
   while (pp) {
-
+    debug("Creating proxy for %s\n", pp->name);
+    createConnection(pp);
+    pp = pp->prev;
   }
 
+  debug("Proxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
   if (socketd == -1) {
     goto out;
   }
 
+  debug("Connection created!\n");
   while (1) {
     int clients = waitClient(socketd);
     if (clients == -1) {
