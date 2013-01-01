@@ -5,11 +5,6 @@
     "path" : "/Player",
     "interface" : "org.freedesktop.MediaPlayer",
     "cmds" : {
-      "PLAY" : "Play",
-      "PAUSE" : "Pause",
-      "STOP" : "Stop",
-      "PREV" : "Prev",
-      "NEXT" : "Next"
     }
   },
   {
@@ -18,8 +13,6 @@
     "path" : "/Mixers/0/Master_0",
     "interface" : "org.kde.KMix.Control",
     "cmds" : {
-      "VOLUMEUP" : "increaseVolume",
-      "VOLUMEDOWN" : "decreaseVolume"
     }
   },
   {
@@ -28,7 +21,6 @@
     "path" : "/org/freedesktop/PowerManagement",
     "interface" : "org.freedesktop.PowerManagement",
     "cmds" : {
-      "SLEEP" : "Suspend"
     }
   }
 ]

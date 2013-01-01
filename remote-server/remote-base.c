@@ -19,7 +19,8 @@ static GOptionEntry opt_entries[] =
 int main(int argc, char *argv[]) {
   int socketd;
   char buff[MAX_CMD_SIZE+1];
-  char dbus_buff[MAX_DBUS_BUFF+1];
+  GHashTable * call_table;
+  struct proxyParams * pp;
 
   GOptionContext *opt_context;
   GError *error;
@@ -43,10 +44,23 @@ int main(int argc, char *argv[]) {
     strcpy(opt_config_file, DEFAULT_CONFIG);
   }
 
-  debug("Option parsed!\n");
+  debug("Command-line options parsed!\nParsing config file...\n");
+  call_table = g_hash_table_new(g_str_hash, g_str_equal);
+
   if(loadConfig(opt_config_file) == -1) {
-    // Bad config file
+    // Bad config file, json syntax error.
     goto out;
+  }
+
+  if(parseConfig(&pp, call_table) == -1) {
+    // Bad config file, proxy/method specifications error.
+    goto out;
+  }
+
+  debug("Config file parsed!\nCreating proxies...\n");
+
+  while (pp) {
+
   }
 
   socketd = initServer(opt_port);
@@ -72,7 +86,7 @@ int main(int argc, char *argv[]) {
 
       buff[ret]='\0';
       debug("received : %s\n", buff);
-      translateCmd(buff, dbus_buff);
+      //translateCmd(buff, dbus_buff);
     }
   }
 
