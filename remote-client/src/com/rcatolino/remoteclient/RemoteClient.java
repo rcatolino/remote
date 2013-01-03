@@ -8,6 +8,7 @@ import android.content.DialogInterface.OnDismissListener;
 import android.os.Bundle;
 import android.R.id;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
@@ -31,6 +32,8 @@ public class RemoteClient extends Activity {
   private static final String stopCmd = "STOP";
   private static final String nextCmd = "NEXT";
   private static final String prevCmd = "PREV";
+  private static final String volumeupCmd = "VOLUMEUP";
+  private static final String volumedownCmd= "VOLUMEDOWN";
 
   private Sender sender = null;
   private DialogListener dialogListener;
@@ -198,6 +201,32 @@ public class RemoteClient extends Activity {
     connectB = (Button) findViewById(R.id.connect_button);
   }
 
+  @Override
+  public boolean dispatchKeyEvent(KeyEvent event) {
+    int action = event.getAction();
+    int keyCode = event.getKeyCode();
+
+    if (!connected || sender == null) {
+      Log.d(LOGTAG, "We're not connected, can't send Volume command");
+      return super.dispatchKeyEvent(event);
+    }
+
+    switch (keyCode) {
+    case KeyEvent.KEYCODE_VOLUME_UP:
+      if (action == KeyEvent.ACTION_UP) {
+        sender.sendCommand(volumeupCmd);
+      }
+      return true;
+    case KeyEvent.KEYCODE_VOLUME_DOWN:
+      if (action == KeyEvent.ACTION_DOWN) {
+        sender.sendCommand(volumedownCmd);
+      }
+      return true;
+    default:
+      return super.dispatchKeyEvent(event);
+    }
+  }
+
   public void showConnectDialog(View connectButton) {
     if (sender != null) {
       Log.d(LOGTAG, "Disconnecting");
@@ -228,7 +257,7 @@ public class RemoteClient extends Activity {
       return;
     }
 
-    sender.sendCommand(playCmd);
+    sender.sendCommand(pauseCmd);
   }
 
   private void setConnected(String host, int port) {
