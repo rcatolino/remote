@@ -26,7 +26,6 @@ import java.util.concurrent.SynchronousQueue;
 public class RemoteClient extends Activity {
 
   private static final String LOGTAG = "RemoteClient";
-
   private static final String playCmd = "PLAY";
   private static final String pauseCmd = "PAUSE";
   private static final String stopCmd = "STOP";
@@ -35,131 +34,13 @@ public class RemoteClient extends Activity {
   private static final String volumeupCmd = "VOLUMEUP";
   private static final String volumedownCmd= "VOLUMEDOWN";
 
-  private Sender sender = null;
   private DialogListener dialogListener;
   private boolean connected = false;
-  private Activity mainActivity;
+  private RemoteClient main;
+  private TcpClient client;
 
   private Button connectB;
   private ImageButton playPauseB;
-
-  private class Sender implements Runnable {
-
-    private SynchronousQueue<String> toSend;
-    private OutputStream output;
-    private boolean stopped = false;
-    private Thread execThread;
-    private Socket sock;
-
-    public Sender(String host, int port) throws IOException, IllegalArgumentException {
-      toSend = new SynchronousQueue<String>();
-      // Open connection :
-      sock = new Socket();
-      InetSocketAddress adress = new InetSocketAddress(host, port);
-      if (adress.isUnresolved()) {
-        Log.d(LOGTAG, "Adress is unresolved");
-        throw new IllegalArgumentException("Bad adress");
-      }
-
-      connectB.setText("Connecting...");
-      sock.connect(adress, 1000);
-      output = sock.getOutputStream();
-
-      // Start thread :
-      execThread = new Thread(this);
-      execThread.start();
-    }
-
-    public void stop() {
-      Log.d(LOGTAG, "Stopping sender");
-      synchronized(this) {
-        stopped = true;
-      }
-
-      Log.d(LOGTAG, "Flag set");
-      try {
-        toSend.put("");
-      } catch (Exception e) {
-        Log.d(LOGTAG, "Could not send empty terminating message in queue : " + e.getMessage());
-        toSend = null;
-      }
-      Log.d(LOGTAG, "Sent empty terminating command");
-
-      try {
-        execThread.join();
-      } catch (Exception e) {
-        Log.d(LOGTAG, "Could not join sending thread : " + e.getMessage());
-      }
-
-      Log.d(LOGTAG, "Joined thread");
-    }
-
-    public void sendCommand(String command) {
-      try {
-        toSend.put(command);
-      } catch (Exception e) {
-        Log.d(LOGTAG, "Sendind command in queue failed : " + e.getMessage());
-      }
-    }
-
-    public boolean shouldStop() {
-      boolean shouldStop = false;
-      synchronized(this) {
-        shouldStop = stopped;
-      }
-
-      return shouldStop;
-    }
-
-    public void run() {
-      String message = null;
-      byte[] buffer = null;
-      while (!shouldStop()) {
-        try {
-          message = toSend.take();
-        } catch (Exception e) {
-          Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
-          return;
-        }
-
-        if (message.equals("")) {
-          Log.d(LOGTAG, "Received empty terminating command");
-          break;
-        }
-
-        try {
-          buffer = message.getBytes("US-ASCII");
-        } catch (Exception e) {
-          Log.d(LOGTAG, e.getMessage());
-          break;
-        }
-
-        //bufferSize = new Integer(buffer.length);
-        try {
-          output.write(buffer.length);
-          output.write(buffer);
-        } catch (Exception e) {
-          Log.d(LOGTAG, "Could not send data : " + e.getMessage());
-          break;
-        }
-      }
-
-      Log.d(LOGTAG, "Running finished");
-      try {
-        sock.close();
-      } catch (Exception e) {
-        Log.d(LOGTAG, "Error on sock.close : " + e.getMessage());
-      }
-
-      mainActivity.runOnUiThread(new Runnable() {
-        public void run() {
-          setDisconnected();
-        }
-      });
-      Log.d(LOGTAG, "Set as disconnected");
-    }
-
-  }
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -173,14 +54,14 @@ public class RemoteClient extends Activity {
       if (d.shouldConnect() && !connected) {
         Log.d(LOGTAG, "Connecting to " + d.getHost() + ":" + d.getPort());
         try {
-          sender = new Sender(d.getHost(), d.getPort());
+          client = new TcpClient(d.getHost(), d.getPort(), main);
           setConnected(d.getHost(), d.getPort());
         } catch (Exception ex) {
-          Log.d(LOGTAG, "Error on sender() : " + ex.getMessage());
+          Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
           connectB.setText(R.string.unco);
-          if (sender != null) {
-            sender.stop();
-            sender = null;
+          if (client != null) {
+            client.stop();
+            client = null;
           }
           return;
         }
@@ -193,7 +74,7 @@ public class RemoteClient extends Activity {
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    mainActivity = this;
+    main = this;
     dialogListener = new DialogListener();
     setContentView(R.layout.main);
 
@@ -206,7 +87,7 @@ public class RemoteClient extends Activity {
     int action = event.getAction();
     int keyCode = event.getKeyCode();
 
-    if (!connected || sender == null) {
+    if (!connected || client == null) {
       Log.d(LOGTAG, "We're not connected, can't send Volume command");
       return super.dispatchKeyEvent(event);
     }
@@ -214,12 +95,12 @@ public class RemoteClient extends Activity {
     switch (keyCode) {
     case KeyEvent.KEYCODE_VOLUME_UP:
       if (action == KeyEvent.ACTION_UP) {
-        sender.sendCommand(volumeupCmd);
+        client.sendCommand(volumeupCmd);
       }
       return true;
     case KeyEvent.KEYCODE_VOLUME_DOWN:
       if (action == KeyEvent.ACTION_DOWN) {
-        sender.sendCommand(volumedownCmd);
+        client.sendCommand(volumedownCmd);
       }
       return true;
     default:
@@ -228,13 +109,13 @@ public class RemoteClient extends Activity {
   }
 
   public void showConnectDialog(View connectButton) {
-    if (sender != null) {
+    if (client != null) {
       Log.d(LOGTAG, "Disconnecting");
       connectB.setText(R.string.disco);
       Log.d(LOGTAG, "disconnect set text");
-      sender.stop();
-      Log.d(LOGTAG, "sender stopped");
-      sender = null;
+      client.stop();
+      Log.d(LOGTAG, "client stopped");
+      client = null;
       return;
     }
 
@@ -251,13 +132,13 @@ public class RemoteClient extends Activity {
       return;
     }
 
-    if (sender == null) {
+    if (client == null) {
       // We've been disconnected
       Log.d(LOGTAG, "The remote has been disconnected");
       return;
     }
 
-    sender.sendCommand(pauseCmd);
+    client.sendCommand(pauseCmd);
   }
 
   private void setConnected(String host, int port) {
@@ -266,8 +147,8 @@ public class RemoteClient extends Activity {
       return;
     }
 
-    if (sender == null) {
-      Log.d(LOGTAG, "Attempted to setConnected whithout any sender");
+    if (client == null) {
+      Log.d(LOGTAG, "Attempted to setConnected whithout any client");
       return;
     }
 
@@ -276,7 +157,7 @@ public class RemoteClient extends Activity {
     playPauseB.setClickable(true);
   }
 
-  private void setDisconnected() {
+  public void setDisconnected() {
     if (!connected) {
       return;
     }
@@ -284,7 +165,7 @@ public class RemoteClient extends Activity {
     connected = false;
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
-    sender = null;
+    client = null;
   }
 
 }
