@@ -14,6 +14,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import java.io.OutputStream;
 import java.io.IOException;
@@ -41,6 +42,7 @@ public class RemoteClient extends Activity {
 
   private Button connectB;
   private ImageButton playPauseB;
+  private TextView playingTV;
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -80,6 +82,7 @@ public class RemoteClient extends Activity {
 
     playPauseB = (ImageButton) findViewById(R.id.play_pause);
     connectB = (Button) findViewById(R.id.connect_button);
+    playingTV = (TextView) findViewById(R.id.playing_text);
   }
 
   @Override
@@ -166,6 +169,16 @@ public class RemoteClient extends Activity {
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
     client = null;
+  }
+
+  public void setPaused() {
+    playPauseB.setImageResource(android.R.drawable.ic_media_play);
+    playingTV.setText("Paused");
+  }
+
+  public void setPlaying(String playing) {
+    playPauseB.setImageResource(android.R.drawable.ic_media_pause);
+    playingTV.setText(playing);
   }
 
 }

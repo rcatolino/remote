@@ -11,5 +11,6 @@
     <string name="cancel">Cancel</string>
     <string name="default_port">52000</string>
     <string name="default_host">192.168.</string>
+    <string name="paused">paused</string>
 
 </resources>
