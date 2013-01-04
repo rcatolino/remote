@@ -17,19 +17,30 @@ static GOptionEntry opt_entries[] =
   { NULL}
 };
 
+void * processEvents(void * arg) {
+  GMainLoop * loop = (GMainLoop *) arg;
+  debug("starting event loop\n");
+  g_main_loop_run(loop);
+  debug("event loop stopped\n");
+  return NULL;
+}
+
 int main(int argc, char *argv[]) {
   int socketd;
   char buff[MAX_CMD_SIZE+1];
-  GHashTable * call_table;
   struct proxyParams * pp;
 
-  GOptionContext *opt_context;
-  GError *error;
+  GHashTable * call_table;
+  GError * error;
+  GMainLoop * loop;
+  GOptionContext * opt_context;
+  GThread * callback_thread;
 
+  g_thread_init(NULL);
   g_type_init();
+  loop = g_main_loop_new(NULL, FALSE);
 
   debug("Parsing options...\n");
-
   opt_context = g_option_context_new("remote-serv example");
   g_option_context_set_summary(opt_context,
                                 "Example: to listen on port 42000 and read config from \'cfg.json\' use:\n"
@@ -39,6 +50,7 @@ int main(int argc, char *argv[]) {
   error = NULL;
   if (!g_option_context_parse (opt_context, &argc, &argv, &error)) {
     g_printerr ("Error parsing options: %s\n", error->message);
+    g_error_free(error);
     goto out;
   }
 
@@ -49,7 +61,6 @@ int main(int argc, char *argv[]) {
 
   debug("Command-line options parsed!\nParsing config file...\n");
   call_table = g_hash_table_new(g_str_hash, g_str_equal);
-
   if(loadConfig(opt_config_file) == -1) {
     // Bad config file, json syntax error.
     goto out;
@@ -65,6 +76,14 @@ int main(int argc, char *argv[]) {
     debug("Creating proxy for %s\n", pp->name);
     createConnection(pp);
     pp = pp->prev;
+  }
+
+  error = NULL;
+  callback_thread = g_thread_create(processEvents, loop, FALSE, &error);
+  if (!callback_thread) {
+    debug("Error creating event loop thread : %s\n", error->message);
+    g_error_free(error);
+    goto out;
   }
 
   debug("Proxies created !\nCreating network connection...\n");
