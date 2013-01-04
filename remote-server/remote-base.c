@@ -102,8 +102,11 @@ int main(int argc, char *argv[]) {
     }
 
     int connected = 1;
+    debug("connected to socket : %d\n", socketd);
+    updateClientSocket(clients);
     while (connected) {
       int ret=receive(clients, buff, MAX_CMD_SIZE);
+      transmit(clients, "\nPLAYING lo", 11);
       if (ret == -1) {
         closeClient(clients);
         connected = 0;

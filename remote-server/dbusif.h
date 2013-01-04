@@ -7,4 +7,6 @@ int createConnection(struct proxyParams * pp);
 
 int call(struct callParams * cp);
 
+void updateClientSocket(int socketd);
+
 #endif

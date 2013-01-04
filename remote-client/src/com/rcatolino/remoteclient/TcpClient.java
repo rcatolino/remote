@@ -82,8 +82,10 @@ public class TcpClient {
           break;
         }
 
+
         try {
-          message = new String(buffer, 0, messageSize, "US-ASCII").split(" ");
+          Log.d(LOGTAG, "received " + new String(buffer, 0, messageSize, "US-ASCII"));
+          message = new String(buffer, 0, messageSize, "US-ASCII").split(" ", 2);
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not split message " + e.getMessage());
           continue;
@@ -232,6 +234,7 @@ public class TcpClient {
   }
 
   private Sender sender;
+  private Receiver receiver;
   private Socket sock;
   private RemoteClient ui;
 
@@ -247,11 +250,13 @@ public class TcpClient {
 
     sock.connect(adress, 1000);
     sender = new Sender(sock);
+    receiver = new Receiver(sock);
 
   }
 
   public void stop() {
     sender.stop();
+    receiver.stop();
   }
 
   public void sendCommand(String command) {

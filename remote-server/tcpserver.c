@@ -2,19 +2,21 @@
 #include "tcpserver.h"
 #include "utils.h"
 
-#include <stdlib.h>
-#include <unistd.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <ifaddrs.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
+#include <unistd.h>
 
-struct sockaddr_in client_address;
+static struct sockaddr_in client_address;
+static int client_socket;
 
 static int checkRet(int ret, int socketd) {
   if (ret==0){
@@ -27,6 +29,11 @@ static int checkRet(int ret, int socketd) {
     debug("Received %d bytes.\n", ret);
   }
   return 0;
+}
+
+void handler(int sigNb) {
+  debug("WATDAFUCK???\n");
+  closeClient(client_socket);
 }
 
 int initServer(int listen_port){
@@ -83,6 +90,7 @@ int waitClient(int listenSocket){
   debug("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
   debug("\tremote port : %d\n", ntohs(client_address.sin_port));
 
+  client_socket = request_socketd;
 	return request_socketd;
 }
 
@@ -118,12 +126,21 @@ int receive(int socketd, char * buff, int size){
 }
 
 int transmit(int socketd, char * buff, int size){
-  if (send(socketd, buff, size,0)==-1)
-  {
+  if (size > MAX_CMD_SIZE) {
+    return -1;
+  }
+
+  if (send(socketd, &size, 1, MSG_MORE)==-1) {
+    perror("send size on socket failed");
+    return -1;
+  }
+
+  if (send(socketd, buff, size, 0)==-1) {
     perror("send on socket failed");
     return -1;
   }
 
+  debug("data sent\n");
   return 0;
 }
 

@@ -51,6 +51,51 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
   return 0;
 }
 
+static int fillFeedbackTable(struct proxyParams * proxy, json_t * fb_obj) {
+  char * fbBuff;
+  char * propertyBuff;
+  const char * fbName;
+  const char * propertyName;
+  void * iter;
+  json_t * value;
+
+  if (fb_obj == NULL || !json_is_object(fb_obj)) {
+    return -1;
+  }
+
+  iter = json_object_iter(fb_obj);
+  if (iter == NULL) {
+    debug("No feedback for proxy %s\n", proxy->name);
+    return 0;
+  }
+
+  while (iter) {
+    fbName = json_object_iter_key(iter);
+    value = json_object_iter_value(iter);
+    if (value == NULL || !json_is_string(value)) {
+      debug("Incorrect feedback/property association, value should be a string, for %s\n", fbName);
+      iter = json_object_iter_next(fb_obj, iter);
+      continue;
+    }
+
+    // TODO: check for the validity of the key as a feedback.
+    propertyName = json_string_value(value);
+    if (proxy->feedback_table == NULL) {
+      proxy->feedback_table = g_hash_table_new(g_str_hash, g_str_equal);
+    }
+
+    propertyBuff = malloc(strlen(propertyName)+1);
+    strncpy(propertyBuff, propertyName, strlen(propertyName)+1);
+    fbBuff = malloc(strlen(fbName)+1);
+    strncpy(fbBuff, fbName, strlen(fbName)+1);
+    g_hash_table_insert(proxy->feedback_table, propertyBuff, fbBuff);
+    debug("Feedback params for %s inserted into feedback table\n", fbName);
+    iter = json_object_iter_next(fb_obj, iter);
+  }
+
+  return 0;
+}
+
 static int fillCallTable(GHashTable * call_table, const struct proxyParams * proxy, json_t * cmd_obj) {
   char * commandBuff;
   const char * commandName;
@@ -136,6 +181,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     params = malloc(sizeof(struct proxyParams));
     params->prev = tmp;
+    params->feedback_table = NULL;
     ret = fillProxyParams(params, data);
     if (ret == -1) {
       debug("Incorect proxy specifications for top-level object in config file!\n");
@@ -168,6 +214,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     tmp = params;
     fillCallTable(hash_table, params, json_object_get(obj, "cmds"));
+    fillFeedbackTable(params, json_object_get(obj, "feedback"));
   }
 
   (*pp) = tmp;

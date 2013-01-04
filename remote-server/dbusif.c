@@ -1,10 +1,13 @@
 #include <gio/gio.h>
+#include <string.h>
 
+#include "tcpserver.h"
 #include "utils.h"
 
 static gchar *opt_name         = NULL;
 static gchar *opt_object_path  = NULL;
 static gchar *opt_interface    = NULL;
+static int client_socket;
 
 static void print_properties (GDBusProxy *proxy)
 {
@@ -25,47 +28,6 @@ static void print_properties (GDBusProxy *proxy)
     g_free (value_str);
   }
   g_strfreev (property_names);
-}
-
-static void on_properties_changed (GDBusProxy          *proxy,
-                                   GVariant            *changed_properties,
-                                   const gchar* const  *invalidated_properties,
-                                   gpointer             user_data)
-{
-  /* Note that we are guaranteed that changed_properties and
-   * invalidated_properties are never NULL
-   */
-
-  if (g_variant_n_children (changed_properties) > 0)
-    {
-      GVariantIter *iter;
-      const gchar *key;
-      GVariant *value;
-
-      g_print (" *** Properties Changed:\n");
-      g_variant_get (changed_properties,
-                     "a{sv}",
-                     &iter);
-      while (g_variant_iter_loop (iter, "{&sv}", &key, &value))
-        {
-          gchar *value_str;
-          value_str = g_variant_print (value, TRUE);
-          g_print ("      %s -> %s\n", key, value_str);
-          g_free (value_str);
-        }
-      g_variant_iter_free (iter);
-    }
-
-  if (g_strv_length ((GStrv) invalidated_properties) > 0)
-    {
-      guint n;
-      g_print (" *** Properties Invalidated:\n");
-      for (n = 0; invalidated_properties[n] != NULL; n++)
-        {
-          const gchar *key = invalidated_properties[n];
-          g_print ("      %s\n", key);
-        }
-    }
 }
 
 static void on_signal (GDBusProxy *proxy,
@@ -121,6 +83,56 @@ static void on_name_owner_notify (GObject    *object,
   print_proxy (proxy);
 }
 
+static void onPropertiesChanged(GDBusProxy          *proxy,
+                                GVariant            *changed_properties,
+                                const gchar* const  *invalidated_properties,
+                                gpointer             pp)
+{
+  if (g_variant_n_children(changed_properties) > 0) {
+    GVariantIter *iter;
+    const gchar *key;
+    GVariant *value;
+    char * feedback;
+    GHashTable * feedback_table;
+
+    feedback_table = ((struct proxyParams *)pp)->feedback_table;
+    debug(" *** Properties Changed:\n");
+    g_variant_get(changed_properties, "a{sv}", &iter);
+    while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
+      char buff[MAX_CMD_SIZE];
+      gchar *value_str;
+      GVariant * value_variant;
+      value_str = g_variant_print(value, TRUE);
+      g_print("      %s -> %s\n", key, value_str);
+      feedback = g_hash_table_lookup(feedback_table, key);
+      g_free(value_str);
+      if (feedback != NULL) {
+        debug("property '%s' present in changed properties\n", key);
+        value_variant = g_variant_lookup_value(value, "xesam:title", G_VARIANT_TYPE_STRING);
+        if (value_variant != NULL) {
+          value_str = g_variant_print(value_variant, FALSE);
+          if (strlen(value_str) < MAX_CMD_SIZE - 10) {
+            snprintf(buff, MAX_CMD_SIZE, "%s %s", feedback, value_str);
+            debug("Need to send %s feedback from %s, with value %s\n", feedback, ((struct proxyParams*)pp)->name, buff);
+            transmit(client_socket, buff, strlen(buff));
+          }
+          g_free(value_str);
+        }
+      }
+    }
+
+    g_variant_iter_free (iter);
+  }
+
+  if (g_strv_length ((GStrv) invalidated_properties) > 0) {
+    guint n;
+    g_print (" *** Properties Invalidated:\n");
+    for (n = 0; invalidated_properties[n] != NULL; n++) {
+      const gchar *key = invalidated_properties[n];
+      g_print ("      %s\n", key);
+    }
+  }
+}
 static void printProxy(struct proxyParams * pp)
 {
   char *name_owner;
@@ -157,7 +169,7 @@ int createConnection(struct proxyParams * pp)
   error = NULL;
 
   flags = G_DBUS_PROXY_FLAGS_NONE;
-  proxy = g_dbus_proxy_new_for_bus_sync (G_BUS_TYPE_SESSION,
+  proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
                                          flags,
                                          NULL, /* GDBusInterfaceInfo */
                                          pp->name,
@@ -173,22 +185,24 @@ int createConnection(struct proxyParams * pp)
 
   pp->proxy = proxy;
   debug("proxy adress : %p, object type : %s\n", pp->proxy, G_OBJECT_TYPE_NAME(pp->proxy));
-  g_signal_connect(proxy, "g-properties-changed",
-                   G_CALLBACK (on_properties_changed),
-                   NULL);
+  if (pp->feedback_table != NULL) {
+    // Only ask to be signaled on this proxy if we need it for feedback
+    g_signal_connect(proxy, "g-properties-changed",
+                     G_CALLBACK(onPropertiesChanged),
+                     pp);
+  }
   g_signal_connect(proxy, "g-signal",
-                   G_CALLBACK (on_signal),
+                   G_CALLBACK(on_signal),
                    NULL);
   g_signal_connect(proxy, "notify::g-name-owner",
-                   G_CALLBACK (on_name_owner_notify),
+                   G_CALLBACK(on_name_owner_notify),
                    NULL);
   printProxy(pp);
 
  out:
-  g_free (opt_name);
-  g_free (opt_object_path);
-  g_free (opt_interface);
-
+  g_free(opt_name);
+  g_free(opt_object_path);
+  g_free(opt_interface);
   return 0;
 }
 
@@ -210,4 +224,8 @@ void call(struct callParams * cp) {
   } else {
     g_variant_unref(ret);
   }
+}
+
+void updateClientSocket(int socketd) {
+  client_socket = socketd;
 }

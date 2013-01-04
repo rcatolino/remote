@@ -1,15 +1,18 @@
 [
   {
-    "app" : "vlc",
-    "dbus-name" : "org.mpris.MediaPlayer2.vlc",
+    "app" : "clementine",
+    "dbus-name" : "org.mpris.MediaPlayer2.clementine",
     "path" : "/org/mpris/MediaPlayer2",
     "interface" : "org.mpris.MediaPlayer2.Player",
     "cmds" : {
-      "PLAY" : "PlayPause",
+      "PLAY" : "Play",
       "PAUSE" : "PlayPause",
       "STOP" : "Stop",
       "PREV" : "Previous",
       "NEXT" : "Next"
+    },
+    "feedback" : {
+      "PLAYING" : "Metadata"
     }
   },
   {

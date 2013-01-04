@@ -22,6 +22,7 @@ struct proxyParams {
   const char * path;
   const char * interface;
   GDBusProxy * proxy;
+  GHashTable * feedback_table;
 
   struct proxyParams * prev;
 };

@@ -31,7 +31,7 @@ Or command that can apply to the whole system :
 + SLEEP
 
 Then the server reads the 'remote-config.json' config file to know how it
-should translate these commands into dbus calls. You can associate any
+should translate these commands into dbus calls (see config-spec.md). You can associate any
 command to any dbus call. You can use a tool such as d-feet to find the
 call you want to use.
 
