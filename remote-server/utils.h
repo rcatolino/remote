@@ -3,6 +3,7 @@
 
 #include <gio/gio.h>
 #include <stdio.h>
+#include "mpris.h"
 
 #ifdef DEBUG
   #define debug(...) printf(__VA_ARGS__)
@@ -22,7 +23,7 @@ struct proxyParams {
   const char * path;
   const char * interface;
   GDBusProxy * proxy;
-  GHashTable * feedback_table;
+  //GHashTable * feedback_table;
 
   struct proxyParams * prev;
 };

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "mpris.h"
 #include "utils.h"
 
 static json_t * data;
@@ -13,6 +14,7 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
   json_t * path;
   json_t * interface;
   json_t * commands;
+  json_t * feedback;
 
   app_name = json_object_get(obj, "app");
   if (app_name == NULL || !json_is_string(app_name)) {
@@ -38,19 +40,28 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
     return -1;
   }
 
+  tmp->name = json_string_value(dbus_name);
+  tmp->path = json_string_value(path);
+  tmp->interface = json_string_value(interface);
+  feedback = json_object_get(obj, "feedback");
+  if (feedback != NULL && json_is_string(feedback) &&
+      strncmp(json_string_value(feedback), "mpris", 5) == 0) {
+    debug("create an mpris instance to listen for feedback for app %s\n",
+          json_string_value(app_name));
+    createMprisInstance(tmp);
+  }
+
   commands = json_object_get(obj, "cmds");
   if (commands == NULL || !json_is_object(commands)) {
     debug("proxy object does not have a command section\n");
     return -1;
   }
 
-  tmp->name = json_string_value(dbus_name);
-  tmp->path = json_string_value(path);
-  tmp->interface = json_string_value(interface);
   debug("proxy params filled for app %s\n", json_string_value(app_name));
   return 0;
 }
 
+/*
 static int fillFeedbackTable(struct proxyParams * proxy, json_t * fb_obj) {
   char * fbBuff;
   char * propertyBuff;
@@ -78,12 +89,6 @@ static int fillFeedbackTable(struct proxyParams * proxy, json_t * fb_obj) {
       continue;
     }
 
-    // TODO: check for the validity of the key as a feedback.
-    propertyName = json_string_value(value);
-    if (proxy->feedback_table == NULL) {
-      proxy->feedback_table = g_hash_table_new(g_str_hash, g_str_equal);
-    }
-
     propertyBuff = malloc(strlen(propertyName)+1);
     strncpy(propertyBuff, propertyName, strlen(propertyName)+1);
     fbBuff = malloc(strlen(fbName)+1);
@@ -95,6 +100,7 @@ static int fillFeedbackTable(struct proxyParams * proxy, json_t * fb_obj) {
 
   return 0;
 }
+*/
 
 static int fillCallTable(GHashTable * call_table, const struct proxyParams * proxy, json_t * cmd_obj) {
   char * commandBuff;
@@ -181,7 +187,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     params = malloc(sizeof(struct proxyParams));
     params->prev = tmp;
-    params->feedback_table = NULL;
+    //params->feedback_table = NULL;
     ret = fillProxyParams(params, data);
     if (ret == -1) {
       debug("Incorect proxy specifications for top-level object in config file!\n");
@@ -214,7 +220,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     tmp = params;
     fillCallTable(hash_table, params, json_object_get(obj, "cmds"));
-    fillFeedbackTable(params, json_object_get(obj, "feedback"));
+    //fillFeedbackTable(params, json_object_get(obj, "feedback"));
   }
 
   (*pp) = tmp;

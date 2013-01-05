@@ -3,7 +3,7 @@
 
 #include "utils.h"
 
-int createConnection(struct proxyParams * pp);
+int createConnection(struct proxyParams * pp, GCallback onPropertyChanged);
 
 int call(struct callParams * cp);
 

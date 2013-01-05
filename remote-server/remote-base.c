@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
   debug("Config file parsed!\nCreating proxies...\n");
   while (pp) {
     debug("Creating proxy for %s\n", pp->name);
-    createConnection(pp);
+    createConnection(pp, NULL);
     pp = pp->prev;
   }
 
@@ -104,6 +104,7 @@ int main(int argc, char *argv[]) {
     int connected = 1;
     debug("connected to socket : %d\n", socketd);
     updateClientSocket(clients);
+    updateMprisClientSocket(clients);
     while (connected) {
       int ret=receive(clients, buff, MAX_CMD_SIZE);
       transmit(clients, "\nPLAYING lo", 11);
