@@ -4,14 +4,14 @@
     "dbus-name" : "org.mpris.MediaPlayer2.clementine",
     "path" : "/org/mpris/MediaPlayer2",
     "interface" : "org.mpris.MediaPlayer2.Player",
-    "feedback" : "mpris",
     "cmds" : {
       "PLAY" : "Play",
-      "PAUSE" : "PlayPause",
+      "PAUSE" : "Pause",
       "STOP" : "Stop",
-      "PREV" : "Previous",
+      "PREV" : "Prev",
       "NEXT" : "Next"
-    }
+    },
+    "feedback" : "mpris"
   },
   {
     "app" : "kmix",

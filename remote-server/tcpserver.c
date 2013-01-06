@@ -125,14 +125,26 @@ int receive(int socketd, char * buff, int size){
   return ret;
 }
 
-int transmit(int socketd, char * buff, int size){
-  if (size > MAX_CMD_SIZE) {
+int transmitMsg(int socketd, char * buff, int size, char * head, int head_size){
+  int whole_size = size + head_size;
+  if (socketd == 0) {
     return -1;
   }
 
-  if (send(socketd, &size, 1, MSG_MORE)==-1) {
+  if (whole_size > MAX_CMD_SIZE) {
+    size = whole_size-MAX_CMD_SIZE;
+    whole_size = size + head_size;
+  }
+
+  if (send(socketd, &whole_size, 1, MSG_MORE)==-1) {
     perror("send size on socket failed");
     return -1;
+  }
+  if (head) {
+    if (send(socketd, head, head_size, MSG_MORE)==-1) {
+      perror("send head on socket failed");
+      return -1;
+    }
   }
 
   if (send(socketd, buff, size, 0)==-1) {
@@ -142,5 +154,9 @@ int transmit(int socketd, char * buff, int size){
 
   debug("data sent\n");
   return 0;
+}
+
+int transmit(int socketd, char * buff, int size) {
+  return transmitMsg(socketd, buff, size, NULL, 0);
 }
 

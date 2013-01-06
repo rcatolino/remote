@@ -16,4 +16,7 @@ int receive(int socketd, char * buff, int size);
 int transmit(int socketd, char * buff, int size);
 // Sends data on the connection. Blocking.
 
+int transmitMsg(int socketd, char * buff, int size, char * head, int head_size);
+// Sends head, then data. Blocking.
+
 #endif

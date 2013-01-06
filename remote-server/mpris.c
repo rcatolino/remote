@@ -17,45 +17,140 @@ mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
 mpris_data->album, mpris_data->artUrl);
 }
 
-static void playbackChanged(char * value, unsigned long length) {
-  debug("MADAFUCKIN LENGTH YO! %lu\n", length);
-  if (mpris_data->playback) {
-    if (strcmp(value, mpris_data->playback) != 0) {
-      transmit(client_socket, value, length);
-      g_free(mpris_data->playback);
-      mpris_data->playback = value;
-    } else {
-      g_free(value);
-    }
+static void sendPlaybackStatus() {
+  transmitMsg(client_socket, mpris_data->playback, strlen(mpris_data->playback),
+              PLAYBACK_HEAD, PLAYBACK_HEAD_SZ);
+}
+
+static void sendLoopStatus() {
+  transmitMsg(client_socket, mpris_data->loop, strlen(mpris_data->loop),
+              LOOP_HEAD, LOOP_HEAD_SZ);
+}
+
+static void sendShuffleStatus() {
+  if (mpris_data->shuffle == 0) {
+    transmit(client_socket, SHUFFLE_OFF, SHUFFLE_SZ);
   } else {
-    transmit(client_socket, value, length);
-    mpris_data->playback = value;
+    transmit(client_socket, SHUFFLE_ON, SHUFFLE_SZ);
   }
 }
 
-static void loopChanged(char * value, unsigned long length) {
-  if (mpris_data->loop) {
-    if (strcmp(value, mpris_data->loop) != 0) {
-      transmit(client_socket, value, length);
-      g_free(mpris_data->loop);
-      mpris_data->loop = value;
+static void sendTrackStatus(int property_list) {
+  if (HAS_TITLE(property_list)) {
+    debug("sending title\n");
+    transmitMsg(client_socket, mpris_data->title, strlen(mpris_data->title),
+                TRACK_TITLE, TRACK_TITLE_SZ);
+  }
+  if (HAS_ARTIST(property_list)) {
+    debug("sending artist\n");
+    transmitMsg(client_socket, mpris_data->artist, strlen(mpris_data->artist),
+                TRACK_ARTIST, TRACK_ARTIST_SZ);
+  }
+  if (HAS_ALBUM(property_list)) {
+    debug("sending album\n");
+    transmitMsg(client_socket, mpris_data->album, strlen(mpris_data->album),
+                TRACK_ALBUM, TRACK_ALBUM_SZ);
+  }
+  if (HAS_LENGTH(property_list)) {
+    debug("sending length\n");
+    transmitMsg(client_socket, (char *)&mpris_data->length, sizeof(int),
+                TRACK_LENGTH, TRACK_LENGTH_SZ);
+  }
+  if (HAS_ARTURL(property_list)) {
+    debug("should send arturl\n");
+  }
+}
+
+void sendCachedData() {
+  printMprisData();
+  sendPlaybackStatus();
+  sendLoopStatus();
+  sendShuffleStatus();
+  sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH);
+}
+
+static int propertyMaybeChanged(char ** old_value, char * new_value) {
+  if (*old_value) {
+    if (strcmp(new_value, *old_value) != 0) {
+      g_free(*old_value);
+      (*old_value) = new_value;
+      return 1;
     } else {
-      g_free(value);
+      g_free(new_value);
+      return 0;
     }
   } else {
-    transmit(client_socket, value, length);
-    mpris_data->loop = value;
+    (*old_value) = new_value;
+    return 1;
+  }
+}
+
+static void playbackChanged(char * value) {
+  if (propertyMaybeChanged(&mpris_data->playback, value) == 1) {
+    sendPlaybackStatus();
+  }
+}
+
+static void loopChanged(char * value) {
+  if (propertyMaybeChanged(&mpris_data->loop, value) == 1) {
+    sendLoopStatus();
   }
 }
 
 static void shuffleChanged(int value) {
   if (value != mpris_data->shuffle) {
     mpris_data->shuffle = value;
-    if (value == 0) {
-      transmit(client_socket, SHUFFLE_OFF, sizeof(SHUFFLE_OFF));
+    sendShuffleStatus();
+  }
+}
+
+static void trackChanged(GVariant * data_map) {
+  GVariant * array;
+  char * value_str = NULL;
+  int ret = 0;
+  int length;
+
+  if (!g_variant_lookup(data_map, "xesam:title", "s", &value_str)) {
+    debug("No metadata on title!\n");
+  } else {
+    ret |= TITLE*propertyMaybeChanged(&mpris_data->title, value_str);
+  }
+
+  array = g_variant_lookup_value(data_map, "xesam:artist", G_VARIANT_TYPE_STRING_ARRAY);
+  if (!array) {
+    debug("No metadata on artist!\n");
+  } else {
+    g_variant_get_child(array, 0, "s", &value_str);
+    if(!value_str) {
+      debug("Invalid metadata on artist!\n");
     } else {
-      transmit(client_socket, SHUFFLE_ON, sizeof(SHUFFLE_ON));
+      ret |= ARTIST*propertyMaybeChanged(&mpris_data->artist, value_str);
     }
+  }
+
+  if (!g_variant_lookup(data_map, "xesam:album", "s", &value_str)) {
+    debug("No metadata on album!\n");
+  } else {
+    ret |= ALBUM*propertyMaybeChanged(&mpris_data->album, value_str);
+  }
+
+  if (!g_variant_lookup(data_map, "mpris:length", "i", &length)) {
+    debug("No metadata on length!\n");
+  } else {
+    if (length != mpris_data->length) {
+      mpris_data->length = length;
+      ret |= LENGTH;
+    }
+  }
+
+  if (!g_variant_lookup(data_map, "mpris:artUrl", "s", &value_str)) {
+    debug("No metadata on art uri!\n");
+  } else {
+    ret |= ARTURL*propertyMaybeChanged(&mpris_data->artUrl, value_str);
+  }
+
+  if (ret != 0) {
+    sendTrackStatus(ret);
   }
 }
 
@@ -141,32 +236,17 @@ static void onPropertiesChanged(GDBusProxy          *proxy,
     debug(" *** Properties Changed:\n");
     g_variant_get(changed_properties, "a{sv}", &iter);
     while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
-      char buff[MAX_CMD_SIZE];
-      unsigned long length;
       gchar *value_str;
-      GVariant * value_variant;
       value_str = g_variant_print(value, TRUE);
       g_print("      %s -> %s\n", key, value_str);
       g_free(value_str);
       if (strncmp(key, "Metadata",8) == 0) {
-        debug("property '%s' present in changed properties\n", key);
-        value_variant = g_variant_lookup_value(value, "xesam:title",
-                                                      G_VARIANT_TYPE_STRING);
-        if (value_variant != NULL) {
-          value_str = g_variant_print(value_variant, FALSE);
-          if (strlen(value_str) < MAX_CMD_SIZE - 10) {
-            snprintf(buff, MAX_CMD_SIZE, "PLAYING %s", value_str);
-            debug("Need to send feedback from %s, with value %s\n",
-                  ((struct proxyParams*)pp)->name, buff);
-            transmit(client_socket, buff, strlen(buff));
-          }
-          g_free(value_str);
-        }
-      } else if (strcmp(key, "PlaybackStatus")) {
-        playbackChanged(g_variant_dup_string(value, &length), length);
-      } else if (strcmp(key, "LoopStatus")) {
-        loopChanged(g_variant_dup_string(value, &length), length);
-      } else if (strcmp(key, "Shuffle")) {
+        trackChanged(value);
+      } else if (strcmp(key, "PlaybackStatus") == 0) {
+        playbackChanged(g_variant_dup_string(value, NULL));
+      } else if (strcmp(key, "LoopStatus") == 0) {
+        loopChanged(g_variant_dup_string(value, NULL));
+      } else if (strcmp(key, "Shuffle") == 0) {
         shuffleChanged(g_variant_get_boolean(value));
       }
     }
@@ -204,6 +284,7 @@ int createMprisInstance(struct proxyParams * pp) {
   updateStatus(instance);
   mpris_data = instance;
   printMprisData();
+  client_socket = 0;
   return 0;
 }
 
