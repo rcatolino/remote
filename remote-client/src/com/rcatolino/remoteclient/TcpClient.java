@@ -9,12 +9,24 @@ import java.lang.IllegalArgumentException;
 import java.lang.Thread;
 import java.net.Socket;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.SynchronousQueue;
 
 public class TcpClient {
 
+  private static final String SHUFFLE = "SHUFFLE";
+  private static final String LOOP = "LOOP";
+  private static final String PLAYBACK = "PLAYBACK";
+  private static final String TRACK = "TRACK";
+  private static final String TITLE = "TITLE";
+  private static final String ALBUM = "ALBUM";
+  private static final String ARTIST = "ARTIST";
+  private static final String LENGTH = "LENGTH";
+  private static final int TRACK_LENGHT_HEADER_SIZE = 13;
+
   private static final String LOGTAG = "RemoteClient/TcpClient";
-  private static final int MAX_COMMAND_SIZE = 64;
+  private static final int MAX_COMMAND_SIZE = 255;
 
   private class Receiver implements Runnable {
 
@@ -76,12 +88,14 @@ public class TcpClient {
             if (ret == -1) {
               break;
             }
+          } else {
+            Log.d(LOGTAG, "Out of band data!!");
+            input.skip(messageSize);
           }
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
           break;
         }
-
 
         try {
           Log.d(LOGTAG, "received " + new String(buffer, 0, messageSize, "US-ASCII"));
@@ -92,22 +106,41 @@ public class TcpClient {
         }
 
         Log.d(LOGTAG, "Received message : " + message[0]);
-        if (message.length == 0) {
-          ui.runOnUiThread(new Runnable() {
-            public void run() {
-              ui.setPaused();
-            }
-          });
+        if (message.length <= 1) {
+          Log.d(LOGTAG, "Invalid message, no argument.");
         } else {
-          if (message[0].equals("PLAYING")) {
-            final String arg = message[1];
+          final String arg = message[1];
+          if (message[0].equals(PLAYBACK)) {
             ui.runOnUiThread(new Runnable() {
               public void run() {
-                ui.setPlaying(arg);
+                ui.setPlaybackStatus(arg);
               }
             });
+          } else if (message[0].equals(TRACK)) {
+            message = arg.split(" ", 2);
+            if (message.length <= 1) {
+              Log.d(LOGTAG, "Invalid track data!, no argument.");
+              continue;
+            }
+            final String track_arg = message[1];
+            if (message[0].equals(TITLE)) {
+              Log.d(LOGTAG, "Track title changed to " + track_arg);
+            } else if (message[0].equals(ARTIST)) {
+              Log.d(LOGTAG, "Track artist changed to " + track_arg);
+            } else if (message[0].equals(ALBUM)) {
+              Log.d(LOGTAG, "Track album changed to " + track_arg);
+            } else if (message[0].equals(LENGTH)) {
+              ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 4);
+              bb.order(ByteOrder.BIG_ENDIAN);
+              Log.d(LOGTAG, "Track length changed to " + bb.getInt() + "ms");
+            }
+          } else if (message[0].equals(LOOP)) {
+            Log.d(LOGTAG, "Loop status changed to " + arg);
+          } else if (message[0].equals(SHUFFLE)) {
+            Log.d(LOGTAG, "Shuffle status changed to " + arg);
           }
         }
+
       }
 
       Log.d(LOGTAG, "Running finished");

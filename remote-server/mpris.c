@@ -3,6 +3,7 @@
 #include "tcpserver.h"
 #include "utils.h"
 
+#include <arpa/inet.h>
 #include <gio/gio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,8 +53,9 @@ static void sendTrackStatus(int property_list) {
                 TRACK_ALBUM, TRACK_ALBUM_SZ);
   }
   if (HAS_LENGTH(property_list)) {
+    uint32_t length = htonl(mpris_data->length);
     debug("sending length\n");
-    transmitMsg(client_socket, (char *)&mpris_data->length, sizeof(int),
+    transmitMsg(client_socket, (char *)&length, sizeof(uint32_t),
                 TRACK_LENGTH, TRACK_LENGTH_SZ);
   }
   if (HAS_ARTURL(property_list)) {
