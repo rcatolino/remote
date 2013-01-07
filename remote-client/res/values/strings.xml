@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Remote Client</string>
-    <string name="connect_dialog">Connection</string>
-    <string name="unco">Not Connected</string>
-    <string name="disco">Disconnecting...</string>
-    <string name="connect_to_server">Connection to server</string>
-    <string name="server">Server Adress :</string>
-    <string name="port">Server Port :</string>
-    <string name="ok">Connect</string>
     <string name="cancel">Cancel</string>
+    <string name="connect_dialog">Connection</string>
+    <string name="connect_to_server">Connection to server</string>
     <string name="default_port">52000</string>
     <string name="default_host">192.168.</string>
+    <string name="disco">Disconnecting...</string>
+    <string name="none"> - </string>
+    <string name="ok">Connect</string>
     <string name="paused">paused</string>
+    <string name="stopped">stopped</string>
+    <string name="port">Server Port :</string>
+    <string name="server">Server Adress :</string>
+    <string name="unco">Not Connected</string>
 
 </resources>

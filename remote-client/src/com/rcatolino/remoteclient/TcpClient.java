@@ -124,10 +124,25 @@ public class TcpClient {
             final String track_arg = message[1];
             if (message[0].equals(TITLE)) {
               Log.d(LOGTAG, "Track title changed to " + track_arg);
+              ui.runOnUiThread(new Runnable() {
+                public void run() {
+                  ui.setTitle(track_arg);
+                }
+              });
             } else if (message[0].equals(ARTIST)) {
               Log.d(LOGTAG, "Track artist changed to " + track_arg);
+              ui.runOnUiThread(new Runnable() {
+                public void run() {
+                  ui.setArtist(track_arg);
+                }
+              });
             } else if (message[0].equals(ALBUM)) {
               Log.d(LOGTAG, "Track album changed to " + track_arg);
+              ui.runOnUiThread(new Runnable() {
+                public void run() {
+                  ui.setAlbum(track_arg);
+                }
+              });
             } else if (message[0].equals(LENGTH)) {
               ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 4);
               bb.order(ByteOrder.BIG_ENDIAN);

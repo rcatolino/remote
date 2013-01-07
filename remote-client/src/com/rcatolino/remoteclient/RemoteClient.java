@@ -35,6 +35,7 @@ public class RemoteClient extends Activity {
   private static final String volumeupCmd = "VOLUMEUP";
   private static final String volumedownCmd= "VOLUMEDOWN";
 
+  private boolean playing = false;
   private DialogListener dialogListener;
   private boolean connected = false;
   private RemoteClient main;
@@ -42,7 +43,10 @@ public class RemoteClient extends Activity {
 
   private Button connectB;
   private ImageButton playPauseB;
-  private TextView playingTV;
+  private TextView titleTV;
+  private TextView artistTV;
+  private TextView albumTV;
+  private TextView playbackTV;
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -82,7 +86,10 @@ public class RemoteClient extends Activity {
 
     playPauseB = (ImageButton) findViewById(R.id.play_pause);
     connectB = (Button) findViewById(R.id.connect_button);
-    playingTV = (TextView) findViewById(R.id.playing_text);
+    titleTV = (TextView) findViewById(R.id.title_text);
+    artistTV = (TextView) findViewById(R.id.artist_text);
+    albumTV = (TextView) findViewById(R.id.album_text);
+    playbackTV = (TextView) findViewById(R.id.playback_text);
   }
 
   @Override
@@ -129,6 +136,36 @@ public class RemoteClient extends Activity {
     connectD.show();
   }
 
+  public void previous(View previousButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    client.sendCommand(prevCmd);
+  }
+
+  public void next(View nextButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    client.sendCommand(nextCmd);
+  }
+
   public void playPause(View playPauseButton) {
     if (!connected) {
       Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
@@ -141,7 +178,11 @@ public class RemoteClient extends Activity {
       return;
     }
 
-    client.sendCommand(pauseCmd);
+    if (playing) {
+      client.sendCommand(pauseCmd);
+    } else {
+      client.sendCommand(playCmd);
+    }
   }
 
   private void setConnected(String host, int port) {
@@ -174,19 +215,28 @@ public class RemoteClient extends Activity {
   public void setPlaybackStatus(String status) {
     if (status.equals("Paused")) {
       playPauseB.setImageResource(android.R.drawable.ic_media_pause);
-      playingTV.setText("Paused");
+      playbackTV.setText("Paused");
+      playing = false;
     } else if (status.equals("Stopped")) {
-      playingTV.setText("Stopped");
+      playbackTV.setText("Stopped");
+      playing = false;
     } else {
       playPauseB.setImageResource(android.R.drawable.ic_media_play);
-      playingTV.setText("Playing");
+      playbackTV.setText("Playing");
+      playing = true;
     }
   }
 
-  public void setPlaying(String playing) {
-    playPauseB.setImageResource(android.R.drawable.ic_media_pause);
-    playingTV.setText(playing);
+  public void setTitle(String title) {
+    titleTV.setText(title);
   }
 
+  public void setArtist(String artist) {
+    artistTV.setText(artist);
+  }
+
+  public void setAlbum(String album) {
+    albumTV.setText(album);
+  }
 }
 
