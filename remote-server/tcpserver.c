@@ -125,8 +125,9 @@ int receive(int socketd, char * buff, int size){
   return ret;
 }
 
-int transmitMsg(int socketd, char * buff, int size, char * head, int head_size){
-  int whole_size = size + head_size;
+int transmitMsg(int socketd, char * buff, uint32_t size, char * head,
+                uint32_t head_size){
+  uint32_t whole_size = size + head_size;
   if (socketd == 0) {
     return -1;
   }
@@ -136,7 +137,8 @@ int transmitMsg(int socketd, char * buff, int size, char * head, int head_size){
     whole_size = size + head_size;
   }
 
-  if (send(socketd, &whole_size, 1, MSG_MORE)==-1) {
+  whole_size = htonl(whole_size);
+  if (send(socketd, &whole_size, sizeof(uint32_t), MSG_MORE)==-1) {
     perror("send size on socket failed");
     return -1;
   }

@@ -1,7 +1,7 @@
 package com.rcatolino.remoteclient;
 
 import android.util.Log;
-
+import java.io.DataInputStream;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -30,12 +30,12 @@ public class TcpClient {
 
   private class Receiver implements Runnable {
 
-    private InputStream input;
+    private DataInputStream input;
     private boolean stopped = false;
     private Thread execThread;
 
     public Receiver(Socket sock) throws IOException {
-      input = sock.getInputStream();
+      input = new DataInputStream(sock.getInputStream());
 
       // Start thread :
       execThread = new Thread(this);
@@ -81,13 +81,11 @@ public class TcpClient {
       int ret;
       while (!shouldStop()) {
         try {
-          messageSize = input.read();
+          Log.d(LOGTAG, "Waiting for data, available : " + input.available());
+          messageSize = input.readInt();
           Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
           if (messageSize < MAX_COMMAND_SIZE) {
-            ret = input.read(buffer);
-            if (ret == -1) {
-              break;
-            }
+            input.readFully(buffer, 0, messageSize);
           } else {
             Log.d(LOGTAG, "Out of band data!!");
             input.skip(messageSize);
@@ -98,7 +96,8 @@ public class TcpClient {
         }
 
         try {
-          Log.d(LOGTAG, "received " + new String(buffer, 0, messageSize, "US-ASCII"));
+          Log.d(LOGTAG, "received " + new String(buffer, 0, messageSize, "US-ASCII") +
+                ", available : " + input.available());
           message = new String(buffer, 0, messageSize, "US-ASCII").split(" ", 2);
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not split message " + e.getMessage());
