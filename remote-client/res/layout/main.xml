@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:background="@drawable/background_holo_dark"
   android:orientation="vertical"
   android:layout_width="fill_parent"
   android:layout_height="fill_parent" >
@@ -42,17 +43,16 @@
     android:layout_gravity="right"
     android:text="@string/stopped"/>
 
-  <LinearLayout android:orientation="horizontal"
-    android:layout_width="fill_parent"
+  <android.support.v4.view.ViewPager
+    android:id="@+id/pager"
+    android:layout_marginLeft="30dp"
+    android:layout_marginRight="30dp"
+    android:layout_marginTop="30dp"
+    android:layout_marginBottom="30dp"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_weight="1"
-    android:gravity="center">
-
-    <ImageView android:src="@drawable/cover_unkonw"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content"/>
-
-  </LinearLayout>
+    android:gravity="center"/>
 
   <LinearLayout android:orientation="horizontal"
     android:layout_width="fill_parent"

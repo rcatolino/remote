@@ -7,6 +7,8 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
 import android.os.Bundle;
 import android.R.id;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -24,7 +26,7 @@ import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.util.concurrent.SynchronousQueue;
 
-public class RemoteClient extends Activity {
+public class RemoteClient extends FragmentActivity {
 
   private static final String LOGTAG = "RemoteClient";
   private static final String playCmd = "PLAY";
@@ -47,6 +49,8 @@ public class RemoteClient extends Activity {
   private TextView artistTV;
   private TextView albumTV;
   private TextView playbackTV;
+  private ViewPager pager;
+  private ImageViewAdapter adapter;
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -90,6 +94,10 @@ public class RemoteClient extends Activity {
     artistTV = (TextView) findViewById(R.id.artist_text);
     albumTV = (TextView) findViewById(R.id.album_text);
     playbackTV = (TextView) findViewById(R.id.playback_text);
+    pager = (ViewPager) findViewById(R.id.pager);
+    pager.setPageMargin(200);
+    adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
+    adapter.setBackground(R.drawable.cover_known);
   }
 
   @Override
