@@ -8,7 +8,7 @@
       "PLAY" : "Play",
       "PAUSE" : "Pause",
       "STOP" : "Stop",
-      "PREV" : "Prev",
+      "PREV" : "Previous",
       "NEXT" : "Next"
     },
     "feedback" : "mpris"

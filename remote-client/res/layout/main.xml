@@ -14,31 +14,18 @@
     android:layout_width="fill_parent"
     android:layout_height="wrap_content">
 
-    <LinearLayout android:orientation="horizontal"
-      android:layout_width="fill_parent"
-      android:layout_height="wrap_content">
+    <TextView android:id="@+id/title_text"
+      android:textAppearance="?android:attr/textAppearanceLarge"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="left"
+      android:text="@string/none"/>
 
-      <TextView android:id="@+id/title_text"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="left"
-        android:text="@string/none"/>
-
-      <LinearLayout android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:gravity="right">
-
-        <TextView android:id="@+id/artist_text"
-          android:textAppearance="?android:attr/textAppearanceMedium"
-          android:layout_width="wrap_content"
-          android:layout_height="fill_parent"
-          android:text="@string/none"/>
-
-      </LinearLayout>
-
-    </LinearLayout>
+    <TextView android:id="@+id/artist_text"
+      android:textAppearance="?android:attr/textAppearanceMedium"
+      android:layout_width="wrap_content"
+      android:layout_height="fill_parent"
+      android:text="@string/none"/>
 
     <TextView android:id="@+id/album_text"
       android:textAppearance="?android:attr/textAppearanceSmall"
@@ -50,49 +37,57 @@
   </LinearLayout>
 
   <TextView android:id="@+id/playback_text"
-    android:layout_width="fill_parent"
+    android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_gravity="bottom"
+    android:layout_gravity="right"
     android:text="@string/stopped"/>
 
-  <LinearLayout android:orientation="vertical"
+  <LinearLayout android:orientation="horizontal"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
-    android:gravity="bottom">
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:gravity="center">
 
-    <LinearLayout android:orientation="horizontal"
+    <ImageView android:src="@drawable/cover_unkonw"
       android:layout_width="fill_parent"
-      android:layout_height="55dp"
-      android:gravity="center">
+      android:layout_height="wrap_content"/>
 
-      <ImageButton android:id="@+id/previous"
-        style="@android:style/MediaButton.Previous"
-        android:layout_width="55dp"
-        android:layout_height="fill_parent"
-        android:scaleType="fitXY"
-        android:contentDescription="Previous"
-        android:clickable="false"
-        android:onClick="previous"/>
+  </LinearLayout>
 
-      <ImageButton android:id="@+id/play_pause"
-        style="@android:style/MediaButton.Pause"
-        android:layout_width="55dp"
-        android:layout_height="fill_parent"
-        android:scaleType="fitXY"
-        android:contentDescription="Play/Pause"
-        android:clickable="false"
-        android:onClick="playPause"/>
+  <LinearLayout android:orientation="horizontal"
+    android:layout_width="fill_parent"
+    android:layout_height="75dp"
+    android:gravity="center">
 
-      <ImageButton android:id="@+id/next"
-        style="@android:style/MediaButton.Next"
-        android:layout_width="55dp"
-        android:layout_height="fill_parent"
-        android:scaleType="fitXY"
-        android:contentDescription="Next"
-        android:clickable="false"
-        android:onClick="next"/>
+    <ImageButton android:id="@+id/previous"
+      android:src="@drawable/remote_music_previous"
+      android:background="@null"
+      android:layout_width="75dp"
+      android:layout_height="fill_parent"
+      android:scaleType="fitXY"
+      android:contentDescription="Previous"
+      android:clickable="false"
+      android:onClick="previous"/>
 
-    </LinearLayout>
+    <ImageButton android:id="@+id/play_pause"
+      android:src="@drawable/remote_music_pause"
+      android:background="@null"
+      android:layout_width="75dp"
+      android:layout_height="fill_parent"
+      android:scaleType="fitXY"
+      android:contentDescription="Play/Pause"
+      android:clickable="false"
+      android:onClick="playPause"/>
+
+    <ImageButton android:id="@+id/next"
+      android:src="@drawable/remote_music_next"
+      android:background="@null"
+      android:layout_width="75dp"
+      android:layout_height="fill_parent"
+      android:scaleType="fitXY"
+      android:contentDescription="Next"
+      android:clickable="false"
+      android:onClick="next"/>
 
   </LinearLayout>
 

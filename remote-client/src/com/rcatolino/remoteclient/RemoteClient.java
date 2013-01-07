@@ -214,14 +214,15 @@ public class RemoteClient extends Activity {
 
   public void setPlaybackStatus(String status) {
     if (status.equals("Paused")) {
-      playPauseB.setImageResource(android.R.drawable.ic_media_pause);
+      playPauseB.setImageResource(R.drawable.remote_music_pause);
       playbackTV.setText("Paused");
       playing = false;
     } else if (status.equals("Stopped")) {
+      playPauseB.setImageResource(R.drawable.remote_music_stop);
       playbackTV.setText("Stopped");
       playing = false;
     } else {
-      playPauseB.setImageResource(android.R.drawable.ic_media_play);
+      playPauseB.setImageResource(R.drawable.remote_music_play);
       playbackTV.setText("Playing");
       playing = true;
     }

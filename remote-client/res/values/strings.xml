@@ -9,8 +9,8 @@
     <string name="disco">Disconnecting...</string>
     <string name="none"> - </string>
     <string name="ok">Connect</string>
-    <string name="paused">paused</string>
-    <string name="stopped">stopped</string>
+    <string name="paused">Paused</string>
+    <string name="stopped">Stopped</string>
     <string name="port">Server Port :</string>
     <string name="server">Server Adress :</string>
     <string name="unco">Not Connected</string>
