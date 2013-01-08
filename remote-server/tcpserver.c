@@ -4,6 +4,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -129,6 +130,7 @@ int transmitMsg(int socketd, char * buff, uint32_t size, char * head,
                 uint32_t head_size){
   uint32_t whole_size = size + head_size;
   if (socketd == 0) {
+    debug("Socket closed\n");
     return -1;
   }
 
@@ -156,6 +158,72 @@ int transmitMsg(int socketd, char * buff, uint32_t size, char * head,
 
   debug("data sent\n");
   return 0;
+}
+
+int transmitFile(int socketd, const char * path) {
+  int image;
+  int ret;
+  struct stat info;
+  uint32_t size = 0;
+  uint32_t nsize = 0;
+  char * buff;
+
+  if (socketd == 0) {
+    return -1;
+    debug("Socket closed\n");
+  }
+
+  debug("Opening %s\n", path);
+  image = open(path, O_RDONLY | O_CLOEXEC | O_NOCTTY);
+  if (image == -1) {
+    perror("open failed ");
+    return -1;
+  }
+
+  fstat(image, &info);
+  if (!S_ISREG(info.st_mode)) {
+    debug("Tried to transmit a non regular file\n");
+    goto out_fd;
+  }
+
+  size = info.st_size;
+  if (size > SSIZE_MAX) {
+    debug("cover too big, size max : %ld\n", SSIZE_MAX);
+    goto out_fd;
+  }
+
+  buff = malloc(size);
+  ret = read(image, buff, size);
+  if (ret != size) {
+    debug("could not read whole file : ret = %d, size = %u\n", ret, size);
+    if (ret == -1) {
+      perror("read ");
+    }
+    goto out_buff;
+  }
+
+  nsize = htonl(size);
+  if (send(socketd, &nsize, sizeof(uint32_t), MSG_MORE) == -1) {
+    perror("send file size ");
+    goto out_buff;
+  }
+
+  debug("Sending file : %u bytes\n", size);
+  if (send(socketd, buff, size, 0) == -1) {
+    perror("send file ");
+    goto out_fd;
+  }
+
+  close(image);
+  free(buff);
+  debug("data sent\n");
+  return 0;
+
+out_buff:
+  free(buff);
+out_fd:
+  close(image);
+  return -1;
 }
 
 int transmit(int socketd, char * buff, int size) {

@@ -20,7 +20,7 @@
 #define TRACK_ARTIST_SZ sizeof(TRACK_ARTIST)-1
 #define TRACK_ALBUM "TRACK ALBUM "
 #define TRACK_ALBUM_SZ sizeof(TRACK_ALBUM)-1
-#define TRACK_ARTURL "TRACK ARTURL "
+#define TRACK_ARTURL "TRACK COVERART"
 #define TRACK_ARTURL_SZ sizeof(TRACK_ARTURL)-1
 #define TRACK_LENGTH "TRACK LENGTH "
 #define TRACK_LENGTH_SZ sizeof(TRACK_LENGTH)-1
@@ -36,6 +36,9 @@
 #define HAS_ALBUM(a)  (a & ALBUM)
 #define HAS_LENGTH(a) (a & LENGTH)
 #define HAS_ARTURL(a) (a & ARTURL)
+
+#define URL_FILE_HEAD "file://"
+#define URL_FILE_HEAD_SZ sizeof(URL_FILE_HEAD)-1
 
 struct mprisInstance {
   struct proxyParams * player;

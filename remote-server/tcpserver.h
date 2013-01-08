@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#define FILE_BUF_SIZE 10000
 int initServer(int listen_port);
 // Creates a server listening on 'listen_port'.
 
@@ -21,4 +22,6 @@ int transmit(int socketd, char * buff, int size);
 int transmitMsg(int socketd, char * buff, uint32_t size, char * head, uint32_t head_size);
 // Sends head, then data. Blocking.
 
+int transmitFile(int socketd, const char * path);
+// Sends file. Blocking.
 #endif

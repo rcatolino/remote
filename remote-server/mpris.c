@@ -11,6 +11,18 @@
 static struct mprisInstance * mpris_data = NULL;
 static int client_socket;
 
+char * pathFromUrl(char * url) {
+  if (url[0]=='/') {
+    return url;
+  }
+
+  if (strncmp(url, URL_FILE_HEAD, URL_FILE_HEAD_SZ) == 0) {
+    return url+URL_FILE_HEAD_SZ;
+  }
+
+  return url;
+}
+
 void printMprisData() {
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
 Album : %s, Album cover location : %s\n", mpris_data->playback,
@@ -59,7 +71,9 @@ static void sendTrackStatus(int property_list) {
                 TRACK_LENGTH, TRACK_LENGTH_SZ);
   }
   if (HAS_ARTURL(property_list)) {
-    debug("should send arturl\n");
+    debug("sending arturl\n");
+    transmit(client_socket, TRACK_ARTURL, TRACK_ARTURL_SZ);
+    transmitFile(client_socket, pathFromUrl(mpris_data->artUrl));
   }
 }
 
@@ -68,7 +82,7 @@ void sendCachedData() {
   sendPlaybackStatus();
   sendLoopStatus();
   sendShuffleStatus();
-  sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH);
+  sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH | ARTURL);
 }
 
 static int propertyMaybeChanged(char ** old_value, char * new_value) {

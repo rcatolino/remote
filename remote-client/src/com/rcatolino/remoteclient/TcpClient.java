@@ -1,7 +1,11 @@
 package com.rcatolino.remoteclient;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -22,6 +26,7 @@ public class TcpClient {
   private static final String TITLE = "TITLE";
   private static final String ALBUM = "ALBUM";
   private static final String ARTIST = "ARTIST";
+  private static final String COVERART= "COVERART";
   private static final String LENGTH = "LENGTH";
   private static final int TRACK_LENGHT_HEADER_SIZE = 13;
 
@@ -65,6 +70,20 @@ public class TcpClient {
       Log.d(LOGTAG, "Joined thread");
     }
 
+    private void writeFile(int fileSize) {
+      final String filename = "cover";
+      int written = 0;
+      FileOutputStream out = null;
+      try {
+        out = new FileOutputStream(filename);
+      } catch (Exception e) {
+        Log.d(LOGTAG, "open file error : " + e.getMessage());
+      }
+
+      while (written < fileSize) {
+      }
+    }
+
     private boolean shouldStop() {
       boolean shouldStop = false;
       synchronized(this) {
@@ -74,31 +93,77 @@ public class TcpClient {
       return shouldStop;
     }
 
+    private byte[] readFile() {
+      int fileSize = 0;
+      byte[] buffer = null;
+      try {
+        fileSize = input.readInt();
+        Log.d(LOGTAG, "Receiving file of " + fileSize + " bytes");
+        if (fileSize > Integer.MAX_VALUE) {
+          Log.d(LOGTAG, "File too big!");
+          input.skip(fileSize);
+          return null;
+        }
+
+        buffer = new byte[fileSize];
+        input.readFully(buffer, 0, fileSize);
+      } catch (Exception e) {
+        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        return null;
+      }
+
+      return buffer;
+    }
+
+    private int readFileSize() {
+      int fileSize = 0;
+      try {
+        fileSize = input.readInt();
+      } catch (Exception e) {
+        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        return 0;
+      }
+
+      return fileSize;
+    }
+
+    private byte[] readMessage() {
+      int messageSize = 0;
+      byte[] buffer = null;
+      try {
+        messageSize = input.readInt();
+        Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
+        if (messageSize < MAX_COMMAND_SIZE) {
+          buffer = new byte[messageSize];
+          input.readFully(buffer, 0, messageSize);
+        } else {
+          Log.d(LOGTAG, "Too much data in message!!");
+          input.skip(messageSize);
+          return new byte[1];
+        }
+      } catch (Exception e) {
+        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        return null;
+      }
+
+      return buffer;
+    }
+
     public void run() {
       String[] message;
-      byte[] buffer = new byte[MAX_COMMAND_SIZE];
-      int messageSize = 0;
       int ret;
       while (!shouldStop()) {
-        try {
-          Log.d(LOGTAG, "Waiting for data, available : " + input.available());
-          messageSize = input.readInt();
-          Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
-          if (messageSize < MAX_COMMAND_SIZE) {
-            input.readFully(buffer, 0, messageSize);
-          } else {
-            Log.d(LOGTAG, "Out of band data!!");
-            input.skip(messageSize);
-          }
-        } catch (Exception e) {
-          Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        byte[] buffer = readMessage();
+        if(buffer == null) {
           break;
+        } else if (buffer.length == 1) {
+          continue;
         }
 
         try {
-          Log.d(LOGTAG, "received " + new String(buffer, 0, messageSize, "US-ASCII") +
+          Log.d(LOGTAG, "received " + new String(buffer, 0, buffer.length, "US-ASCII") +
                 ", available : " + input.available());
-          message = new String(buffer, 0, messageSize, "US-ASCII").split(" ", 2);
+          message = new String(buffer, 0, buffer.length, "US-ASCII").split(" ", 2);
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not split message " + e.getMessage());
           continue;
@@ -118,7 +183,17 @@ public class TcpClient {
           } else if (message[0].equals(TRACK)) {
             message = arg.split(" ", 2);
             if (message.length <= 1) {
-              Log.d(LOGTAG, "Invalid track data!, no argument.");
+              if (message[0].equals(COVERART)) {
+                final byte[] file = readFile();
+                Log.d(LOGTAG, "Received " + file.length);
+                ui.runOnUiThread(new Runnable() {
+                  public void run() {
+                    ui.setCoverArt(file);
+                  }
+                });
+              } else {
+                Log.d(LOGTAG, "Invalid track data!, no argument.");
+              }
               continue;
             }
             final String track_arg = message[1];

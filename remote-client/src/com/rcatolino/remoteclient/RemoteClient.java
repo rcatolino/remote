@@ -2,9 +2,14 @@ package com.rcatolino.remoteclient;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.R.id;
 import android.support.v4.app.FragmentActivity;
@@ -26,7 +31,8 @@ import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.util.concurrent.SynchronousQueue;
 
-public class RemoteClient extends FragmentActivity {
+public class RemoteClient extends FragmentActivity
+                          implements ImageViewAdapter.OnPreviousNextListener {
 
   private static final String LOGTAG = "RemoteClient";
   private static final String playCmd = "PLAY";
@@ -98,6 +104,7 @@ public class RemoteClient extends FragmentActivity {
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
     adapter.setBackground(R.drawable.cover_known);
+    adapter.setOnPreviousNextListener(this);
   }
 
   @Override
@@ -144,9 +151,17 @@ public class RemoteClient extends FragmentActivity {
     connectD.show();
   }
 
+  public void onPrevious() {
+    previous(null);
+  }
+
+  public void onNext() {
+    next(null);
+  }
+
   public void previous(View previousButton) {
     if (!connected) {
-      Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
+      Log.d(LOGTAG, "Error aksed for previous while unconnected!");
       return;
     }
 
@@ -161,7 +176,7 @@ public class RemoteClient extends FragmentActivity {
 
   public void next(View nextButton) {
     if (!connected) {
-      Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
+      Log.d(LOGTAG, "Error aksed for next while unconnected!");
       return;
     }
 
@@ -246,6 +261,20 @@ public class RemoteClient extends FragmentActivity {
 
   public void setAlbum(String album) {
     albumTV.setText(album);
+  }
+
+  public void setCoverArt(byte[] file) {
+    if (file == null) {
+      return;
+    }
+
+    Bitmap cover = BitmapFactory.decodeByteArray(file, 0, file.length);
+    if (cover == null) {
+      Log.d(LOGTAG, "Could not decode bitmap");
+      return;
+    }
+
+    adapter.setBackground(cover);
   }
 }
 
