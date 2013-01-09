@@ -24,6 +24,9 @@ char * pathFromUrl(char * url) {
 }
 
 void printMprisData() {
+  if (mpris_data == NULL) {
+    return;
+  }
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
 Album : %s, Album cover location : %s\n", mpris_data->playback,
 mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
@@ -31,11 +34,17 @@ mpris_data->album, mpris_data->artUrl);
 }
 
 static void sendPlaybackStatus() {
+  if (mpris_data->playback == NULL) {
+    return;
+  }
   transmitMsg(client_socket, mpris_data->playback, strlen(mpris_data->playback),
               PLAYBACK_HEAD, PLAYBACK_HEAD_SZ);
 }
 
 static void sendLoopStatus() {
+  if (mpris_data->loop == NULL) {
+    return;
+  }
   transmitMsg(client_socket, mpris_data->loop, strlen(mpris_data->loop),
               LOOP_HEAD, LOOP_HEAD_SZ);
 }
@@ -49,17 +58,18 @@ static void sendShuffleStatus() {
 }
 
 static void sendTrackStatus(int property_list) {
-  if (HAS_TITLE(property_list)) {
+  if (HAS_TITLE(property_list) && mpris_data->title != NULL) {
     debug("sending title\n");
-    transmitMsg(client_socket, mpris_data->title, strlen(mpris_data->title),
+    transmitMsg(client_socket, pathFromUrl(mpris_data->title),
+                strlen(pathFromUrl(mpris_data->title)),
                 TRACK_TITLE, TRACK_TITLE_SZ);
   }
-  if (HAS_ARTIST(property_list)) {
+  if (HAS_ARTIST(property_list) && mpris_data->artist != NULL) {
     debug("sending artist\n");
     transmitMsg(client_socket, mpris_data->artist, strlen(mpris_data->artist),
                 TRACK_ARTIST, TRACK_ARTIST_SZ);
   }
-  if (HAS_ALBUM(property_list)) {
+  if (HAS_ALBUM(property_list) && mpris_data->album != NULL) {
     debug("sending album\n");
     transmitMsg(client_socket, mpris_data->album, strlen(mpris_data->album),
                 TRACK_ALBUM, TRACK_ALBUM_SZ);
@@ -70,7 +80,7 @@ static void sendTrackStatus(int property_list) {
     transmitMsg(client_socket, (char *)&length, sizeof(uint32_t),
                 TRACK_LENGTH, TRACK_LENGTH_SZ);
   }
-  if (HAS_ARTURL(property_list)) {
+  if (HAS_ARTURL(property_list) && mpris_data->artUrl != NULL) {
     debug("sending arturl\n");
     transmit(client_socket, TRACK_ARTURL, TRACK_ARTURL_SZ);
     transmitFile(client_socket, pathFromUrl(mpris_data->artUrl));
@@ -78,6 +88,9 @@ static void sendTrackStatus(int property_list) {
 }
 
 void sendCachedData() {
+  if (mpris_data == NULL) {
+    return;
+  }
   printMprisData();
   sendPlaybackStatus();
   sendLoopStatus();
@@ -126,8 +139,9 @@ static void trackChanged(GVariant * data_map) {
   int ret = 0;
   int length;
 
-  if (!g_variant_lookup(data_map, "xesam:title", "s", &value_str)) {
-    debug("No metadata on title!\n");
+  if (!g_variant_lookup(data_map, "xesam:title", "s", &value_str) &&
+      !g_variant_lookup(data_map, "xesam:url", "s", &value_str)) {
+      debug("No metadata on title/url!\n");
   } else {
     ret |= TITLE*propertyMaybeChanged(&mpris_data->title, value_str);
   }
