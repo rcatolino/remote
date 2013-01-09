@@ -103,7 +103,6 @@ public class RemoteClient extends FragmentActivity
     pager = (ViewPager) findViewById(R.id.pager);
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
-    adapter.setBackground(R.drawable.cover_known);
     adapter.setOnPreviousNextListener(this);
   }
 
@@ -233,6 +232,11 @@ public class RemoteClient extends FragmentActivity
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
     client = null;
+    setTitle("-");
+    setArtist("-");
+    setAlbum("-");
+    adapter.setBackground(R.drawable.cover_unknown);
+    setPlaybackStatus("Stopped");
   }
 
   public void setPlaybackStatus(String status) {
