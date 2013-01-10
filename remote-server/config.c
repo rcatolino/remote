@@ -61,47 +61,6 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
   return 0;
 }
 
-/*
-static int fillFeedbackTable(struct proxyParams * proxy, json_t * fb_obj) {
-  char * fbBuff;
-  char * propertyBuff;
-  const char * fbName;
-  const char * propertyName;
-  void * iter;
-  json_t * value;
-
-  if (fb_obj == NULL || !json_is_object(fb_obj)) {
-    return -1;
-  }
-
-  iter = json_object_iter(fb_obj);
-  if (iter == NULL) {
-    debug("No feedback for proxy %s\n", proxy->name);
-    return 0;
-  }
-
-  while (iter) {
-    fbName = json_object_iter_key(iter);
-    value = json_object_iter_value(iter);
-    if (value == NULL || !json_is_string(value)) {
-      debug("Incorrect feedback/property association, value should be a string, for %s\n", fbName);
-      iter = json_object_iter_next(fb_obj, iter);
-      continue;
-    }
-
-    propertyBuff = malloc(strlen(propertyName)+1);
-    strncpy(propertyBuff, propertyName, strlen(propertyName)+1);
-    fbBuff = malloc(strlen(fbName)+1);
-    strncpy(fbBuff, fbName, strlen(fbName)+1);
-    g_hash_table_insert(proxy->feedback_table, propertyBuff, fbBuff);
-    debug("Feedback params for %s inserted into feedback table\n", fbName);
-    iter = json_object_iter_next(fb_obj, iter);
-  }
-
-  return 0;
-}
-*/
-
 static int fillCallTable(GHashTable * call_table, const struct proxyParams * proxy, json_t * cmd_obj) {
   char * commandBuff;
   const char * commandName;
@@ -156,6 +115,101 @@ int loadConfig(const char * path) {
   return 0;
 }
 
+static int isValidProfileObject(const json_t * data, json_t ** out_name,
+                                json_t ** out_data, const char * name) {
+
+  json_t * profile_name = json_object_get(data, "profile-name");
+  json_t * profile_data = json_object_get(data, "profile-data");
+  *out_name = NULL;
+  *out_data = NULL;
+  if (!profile_name || !json_is_string(profile_name) || !profile_data ||
+      (!json_is_object(profile_data) && !json_is_array(profile_data))) {
+    // Not a valid profile object
+    return -1;
+  }
+
+  if (!name || strcmp(name, json_string_value(profile_name)) == 0) {
+    // We're not looking for a specific profile, this one will do, or
+    // we are looking for a specific profile and this one matches.
+    *out_name = profile_name;
+    *out_data = profile_data;
+    return 0;
+  }
+
+  // This is a valid profile object, but doesn't match the desired profile name.
+  return 1;
+}
+
+static int isValidProfileArray(const json_t * data, json_t ** out_name,
+                               json_t ** out_data, const char * name) {
+  int i;
+  int ret = 0;
+  json_t * obj;
+  *out_name = NULL;
+  *out_data = NULL;
+
+  for (i = 0; i < json_array_size(data); i++) {
+    obj = json_array_get(data, i);
+    ret = isValidProfileObject(obj, out_name, out_data, name);
+    if (ret == -1) {
+      // Invalid profile object ==> invalid profile array :
+      return ret;
+    } else if (ret == 0) {
+      // Valid profile object, matching 'name'
+      return ret;
+    }
+    // Valid profile object, but not matching 'name'. Keep looking
+  }
+
+  // No profile matched name.
+  return 1;
+}
+
+const char * chooseProfile(const char * name) {
+  json_t * profile_name;
+  json_t * profile_data;
+
+  if (data == NULL) {
+    debug("Config file not loaded\n");
+    return NULL;
+  }
+
+  // There is only one object. Is it a profile, or a proxy?
+  if (json_is_array(data)) {
+    if (isValidProfileArray(data, &profile_name, &profile_data, name) == 0) {
+      data = profile_data;
+      return json_string_value(profile_name);
+    }
+
+    if (!name) {
+      // This is not a profile array, but we are not looking for one.
+      // Let's assume it's a proxy array.
+      return "default";
+    }
+
+    // We are looking for a profile, but there aren't any!
+    return NULL;
+  }
+
+  // There is only one object. Is it a profile, or a proxy?
+  if (json_is_object(data)) {
+    if (isValidProfileObject(data, &profile_name, &profile_data, name) == -1) {
+      data = profile_data;
+      return json_string_value(profile_name);
+    }
+
+    if (!name) {
+      // This is not a profile, but we are not looking for one. Let's assume it's a proxy.
+      return "default";
+    }
+
+    // We are looking for a profile, but there aren't any!
+    return NULL;
+  }
+
+  return NULL;
+}
+
 int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 // Create the proxyParams structures, holding the information to create the various proxies
 // Fills in the hash_table containing the call ref for each command.
@@ -187,7 +241,6 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     params = malloc(sizeof(struct proxyParams));
     params->prev = tmp;
-    //params->feedback_table = NULL;
     ret = fillProxyParams(params, data);
     if (ret == -1) {
       debug("Incorect proxy specifications for top-level object in config file!\n");
@@ -220,102 +273,10 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     tmp = params;
     fillCallTable(hash_table, params, json_object_get(obj, "cmds"));
-    //fillFeedbackTable(params, json_object_get(obj, "feedback"));
   }
 
   (*pp) = tmp;
   if (tmp == NULL) return -1;
   return 0;
 }
-
-int lookupCmd(const char * cmd, char * buff, json_t * obj) {
-  // TODO: move these checks at parse time
-  int ret = -1;
-  json_t * app_name;
-  json_t * dbus_name;
-  json_t * command;
-  json_t * path;
-  json_t * method;
-
-  app_name = json_object_get(obj, "app");
-  if (app_name == NULL || !json_is_string(app_name)) {
-    debug("app object does not have an app name\n");
-    return -1;
-  }
-
-  dbus_name = json_object_get(obj, "dbus-name");
-  if (dbus_name == NULL || !json_is_string(dbus_name)) {
-    debug("app object does not have a dbus-name\n");
-    return -1;
-  }
-
-  command = json_object_get(obj, cmd);
-  if (command == NULL || !json_is_object(command)) {
-    return 0;
-  }
-
-  path = json_object_get(command, "path");
-  if (path == NULL || !json_is_string(path)) {
-    debug("command %s exists in %s, but has no dbus path\n", cmd, json_string_value(app_name));
-    return 0;
-  }
-
-  method = json_object_get(command, "method");
-  if (method == NULL || !json_is_string(method)) {
-    debug("command %s exists in %s, but has no dbus method\n", cmd, json_string_value(app_name));
-    return 0;
-  }
-
-  ret = snprintf(buff, MAX_DBUS_BUFF, "%s %s %s", json_string_value(dbus_name), json_string_value(path), json_string_value(method));
-  if (ret < 0) {
-    perror("snprintf ");
-    return 0;
-  } else if (ret >= MAX_DBUS_BUFF) {
-    printf("Dbus command too long, rebuild with a bigger MAX_DBUS_BUFF\n");
-    return 0;
-  }
-
-  debug("cmd translated to : %s\n", buff);
-  ret = 1;
-
-  return ret;
-}
-
-int translateCmd(const char * cmd, char * buff) {
-
-  int ret;
-  json_t * obj;
-  int i = 0;
-  if (!json_is_array(data)) {
-    debug("data is not an array\n");
-    if (!json_is_object(data)) {
-      debug("data is not an array or an object\n");
-      return -1;
-    }
-  }
-
-  debug("Config : %ld top level item\n", json_array_size(data));
-  for (i = 0; i < json_array_size(data); i++) {
-    obj = json_array_get(data, i);
-    //debug("obj type : %d\n", json_typeof(obj));
-    if (!json_is_object(obj)) {
-      debug("non-object top-level item number %d in config file!\n", i);
-      json_array_remove(data, i);
-      continue;
-    }
-
-    ret = lookupCmd(cmd, buff, obj);
-    if (ret == -1) {
-      json_array_remove(data, i);
-      continue;
-    } else if (ret == 1) {
-      // We found a dbus command associated
-      return 1;
-    }
-  }
-
-  debug("Could not find any dbus call associated to %s\n", cmd);
-  return 0;
-}
-
 

@@ -1,0 +1,36 @@
+[
+  {
+    "app" : "vlc",
+    "dbus-name" : "org.mpris.MediaPlayer2.vlc",
+    "path" : "/org/mpris/MediaPlayer2",
+    "interface" : "org.mpris.MediaPlayer2.Player",
+    "cmds" : {
+      "PLAY" : "PlayPause",
+      "PAUSE" : "PlayPause",
+      "STOP" : "Stop",
+      "PREV" : "Previous",
+      "NEXT" : "Next"
+    },
+    "feedback" : "mpris"
+  },
+  {
+    "app" : "kmix",
+    "dbus-name" : "org.kde.kmix",
+    "path" : "/Mixers/0/Master_0",
+    "interface" : "org.kde.KMix.Control",
+    "cmds" : {
+      "VOLUMEUP" : "increaseVolume",
+      "VOLUMEDOWN" : "decreaseVolume"
+    }
+  },
+  {
+    "app" : "power-management",
+    "dbus-name" : "org.freedesktop.PowerManagement",
+    "path" : "/org/freedesktop/PowerManagement",
+    "interface" : "org.freedesktop.PowerManagement",
+    "cmds" : {
+      "SLEEP" : "Suspend"
+    }
+  }
+]
+

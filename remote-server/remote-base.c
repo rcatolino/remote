@@ -29,6 +29,7 @@ int main(int argc, char *argv[]) {
   int socketd;
   char buff[MAX_CMD_SIZE+1];
   struct proxyParams * pp;
+  const char * profile_name;
 
   GHashTable * call_table;
   GError * error;
@@ -59,19 +60,20 @@ int main(int argc, char *argv[]) {
     strcpy(opt_config_file, DEFAULT_CONFIG);
   }
 
-  debug("Command-line options parsed!\nParsing config file...\n");
+  debug("\nCommand-line options parsed!\nParsing config file...\n");
   call_table = g_hash_table_new(g_str_hash, g_str_equal);
   if(loadConfig(opt_config_file) == -1) {
     // Bad config file, json syntax error.
     goto out;
   }
 
-  if(parseConfig(&pp, call_table) == -1 || pp == NULL) {
+  profile_name = chooseProfile(NULL);
+  if(profile_name == NULL || parseConfig(&pp, call_table) == -1 || pp == NULL) {
     // Bad config file, proxy/method specifications error.
     goto out;
   }
 
-  debug("Config file parsed!\nCreating proxies...\n");
+  debug("\nConfig file parsed, for profile %s!\nCreating proxies...\n", profile_name);
   while (pp) {
     debug("Creating proxy for %s\n", pp->name);
     createConnection(pp, NULL);
@@ -86,13 +88,13 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
-  debug("Proxies created !\nCreating network connection...\n");
+  debug("\nProxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
   if (socketd == -1) {
     goto out;
   }
 
-  debug("Connection created!\n");
+  debug("\nConnection created!\n");
   while (1) {
     struct callParams * cp = NULL;
     int clients = waitClient(socketd);
@@ -102,7 +104,7 @@ int main(int argc, char *argv[]) {
     }
 
     int connected = 1;
-    debug("connected to socket : %d\n", socketd);
+    debug("\nconnected to socket : %d\n", socketd);
     updateClientSocket(clients);
     updateMprisClientSocket(clients);
     sendCachedData();
