@@ -37,6 +37,7 @@ static void sendPlaybackStatus() {
   if (mpris_data->playback == NULL) {
     return;
   }
+  debug("client socket : %d\n", client_socket);
   transmitMsg(client_socket, mpris_data->playback, strlen(mpris_data->playback),
               PLAYBACK_HEAD, PLAYBACK_HEAD_SZ);
 }
@@ -253,6 +254,21 @@ static void updateStatus(struct mprisInstance * instance) {
   debug("Properties updated\n");
 }
 
+static void onNameOwnerChanged(GObject    *object,
+                               GParamSpec *pspec,
+                               struct proxyParams * pp)
+{
+  char * name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
+  if (name_owner && pp->active == 0) {
+    updateStatus(mpris_data);
+    pp->active = 1;
+  } else if (!name_owner && pp->active == 1) {
+    updateStatus(mpris_data);
+    pp->active = 0;
+  }
+  printProxy(pp);
+}
+
 static void onPropertiesChanged(GDBusProxy          *proxy,
                                 GVariant            *changed_properties,
                                 const gchar* const  *invalidated_properties,
@@ -299,8 +315,10 @@ int createMprisInstance(struct proxyParams * pp) {
   instance->player->name = pp->name;
   instance->player->path = pp->path;
   instance->player->interface = MPRIS_PLAYER_IF;
+  instance->player->active = 0;
   // Create proxy for Player :
-  if (createConnection(instance->player, G_CALLBACK(onPropertiesChanged)) == -1) {
+  if (createConnection(instance->player, G_CALLBACK(onPropertiesChanged),
+                       G_CALLBACK(onNameOwnerChanged)) == -1) {
     debug("Could not create mpris proxy, does this application implement the mrpis protocol?\n");
     free(instance);
     return -1;

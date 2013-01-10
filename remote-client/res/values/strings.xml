@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Remote Client</string>
+    <string name="app_name">Remote</string>
     <string name="cancel">Cancel</string>
     <string name="connect_dialog">Connection</string>
     <string name="connect_to_server">Connection to server</string>
@@ -14,5 +14,6 @@
     <string name="port">Server Port :</string>
     <string name="server">Server Adress :</string>
     <string name="unco">Not Connected</string>
-
+    <string name="close">Sleep</string>
+    <string name="profile">Profile</string>
 </resources>

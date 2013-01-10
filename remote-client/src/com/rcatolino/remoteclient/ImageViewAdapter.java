@@ -26,10 +26,14 @@ public class ImageViewAdapter extends FragmentPagerAdapter
     public abstract void onNext();
   }
 
-  private static class ImageViewFragment extends Fragment {
+  public static class ImageViewFragment extends Fragment {
 
     private ImageView imageIV;
     private int backgroundSrc = 0;
+
+    public ImageViewFragment() {
+      super();
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,

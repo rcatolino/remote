@@ -7,6 +7,7 @@
 #include "utils.h"
 
 static json_t * data;
+static json_t * data_root;
 
 static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
   json_t * app_name;
@@ -105,8 +106,9 @@ and key should be shorter than %d char, for %s\n", MAX_CMD_SIZE, commandName);
 int loadConfig(const char * path) {
   json_error_t error;
 
-  data = json_load_file(path, 0, &error);
-  if (data == NULL) {
+  data = NULL;
+  data_root = json_load_file(path, 0, &error);
+  if (data_root == NULL) {
     printf("Could not parse config file : %s\nAt position %d,%d :\n\t%s\n",
         error.text, error.line, error.column, error.source);
     return -1;
@@ -140,6 +142,51 @@ static int isValidProfileObject(const json_t * data, json_t ** out_name,
   return 1;
 }
 
+char * getProfiles() {
+  json_t * obj;
+  json_t * name;
+  json_t * data;
+  int i = 0;
+  int count = 0;
+  const char ** profiles_name;
+  char * buff;
+  int profiles_length = 0;
+
+  if (data_root == NULL) {
+    return NULL;
+  }
+
+  if (json_is_array(data_root)) {
+    profiles_name = malloc(sizeof(char *));
+    for (i = 0; i < json_array_size(data_root); i++) {
+      obj = json_array_get(data_root, i);
+      if (isValidProfileObject(obj, &name, &data, NULL) == -1) {
+        debug("Invalid profile array! Object %i is invalid.\n", i);
+        free(profiles_name);
+        return NULL;
+      }
+
+      profiles_name[i] = json_string_value(name);
+      profiles_length += strlen(profiles_name[i]) + 1;
+    }
+
+    buff = malloc(profiles_length);
+    memset(buff,' ', profiles_length);
+    for (i = 0; i<json_array_size(data_root); i++) {
+      memcpy(buff+count, profiles_name[i], strlen(profiles_name[i]));
+      count += strlen(profiles_name[i])+1;
+    }
+
+    buff[profiles_length-1]='\0';
+    debug("profile size : %d, count : %d\n", profiles_length, count);
+    debug("profiles_name : %s\n", buff);
+    free(profiles_name);
+    return buff;
+  }
+
+  return NULL;
+}
+
 static int isValidProfileArray(const json_t * data, json_t ** out_name,
                                json_t ** out_data, const char * name) {
   int i;
@@ -153,15 +200,18 @@ static int isValidProfileArray(const json_t * data, json_t ** out_name,
     ret = isValidProfileObject(obj, out_name, out_data, name);
     if (ret == -1) {
       // Invalid profile object ==> invalid profile array :
+      debug("Invalid profile array! Object %i is invalid.\n", i);
       return ret;
     } else if (ret == 0) {
       // Valid profile object, matching 'name'
+      debug("Valid profile %s found\n", json_string_value(*out_name));
       return ret;
     }
     // Valid profile object, but not matching 'name'. Keep looking
   }
 
   // No profile matched name.
+  debug("No profile matching %s found in array\n", name);
   return 1;
 }
 
@@ -169,14 +219,14 @@ const char * chooseProfile(const char * name) {
   json_t * profile_name;
   json_t * profile_data;
 
-  if (data == NULL) {
+  if (data_root == NULL) {
     debug("Config file not loaded\n");
     return NULL;
   }
 
   // There is only one object. Is it a profile, or a proxy?
-  if (json_is_array(data)) {
-    if (isValidProfileArray(data, &profile_name, &profile_data, name) == 0) {
+  if (json_is_array(data_root)) {
+    if (isValidProfileArray(data_root, &profile_name, &profile_data, name) == 0) {
       data = profile_data;
       return json_string_value(profile_name);
     }
@@ -184,22 +234,28 @@ const char * chooseProfile(const char * name) {
     if (!name) {
       // This is not a profile array, but we are not looking for one.
       // Let's assume it's a proxy array.
+      data = data_root;
       return "default";
     }
 
     // We are looking for a profile, but there aren't any!
+    debug("No profile available");
+    if (name) {
+      debug(" for name %s\n", name);
+    } else debug(".\n");
     return NULL;
   }
 
   // There is only one object. Is it a profile, or a proxy?
-  if (json_is_object(data)) {
-    if (isValidProfileObject(data, &profile_name, &profile_data, name) == -1) {
+  if (json_is_object(data_root)) {
+    if (isValidProfileObject(data_root, &profile_name, &profile_data, name) == -1) {
       data = profile_data;
       return json_string_value(profile_name);
     }
 
     if (!name) {
       // This is not a profile, but we are not looking for one. Let's assume it's a proxy.
+      data = data_root;
       return "default";
     }
 
@@ -241,6 +297,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
 
     params = malloc(sizeof(struct proxyParams));
     params->prev = tmp;
+    params->active = 0;
     ret = fillProxyParams(params, data);
     if (ret == -1) {
       debug("Incorect proxy specifications for top-level object in config file!\n");

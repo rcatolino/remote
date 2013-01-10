@@ -45,6 +45,7 @@ int createProfile(const char * profile, GHashTable * call_table, struct proxyPar
 
   if(profile_name == NULL || parseConfig(pp, call_table) == -1 || *pp == NULL) {
     // Bad config file, proxy/method specifications error.
+    debug("Config error!\n");
     return -1;
   }
 
@@ -52,7 +53,7 @@ int createProfile(const char * profile, GHashTable * call_table, struct proxyPar
   tmp = *pp;
   while (tmp) {
     debug("Creating proxy for %s\n", tmp->name);
-    createConnection(tmp, NULL);
+    createConnection(tmp, NULL, NULL);
     tmp = tmp->prev;
   }
 
@@ -121,6 +122,7 @@ int main(int argc, char *argv[]) {
 
   debug("\nConnection created!\n");
   while (1) {
+    char * profiles;
     struct callParams * cp = NULL;
     int clients = waitClient(socketd);
     if (clients == -1) {
@@ -132,6 +134,10 @@ int main(int argc, char *argv[]) {
     debug("\nconnected to socket : %d\n", socketd);
     updateClientSocket(clients);
     updateMprisClientSocket(clients);
+    profiles = getProfiles();
+    transmitMsg(clients, profiles, strlen(profiles),
+                PROFILES_HEAD, PROFILES_HEAD_SZ);
+    free(profiles);
     sendCachedData();
     while (connected) {
       int ret=receive(clients, buff, MAX_CMD_SIZE);
@@ -153,6 +159,7 @@ int main(int argc, char *argv[]) {
                  strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
         freeProfileRes(call_table, pp);
         createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
+        updateMprisClientSocket(clients);
       }
     }
   }

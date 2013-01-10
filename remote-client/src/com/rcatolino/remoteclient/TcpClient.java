@@ -28,6 +28,7 @@ public class TcpClient {
   private static final String ARTIST = "ARTIST";
   private static final String COVERART= "COVERART";
   private static final String LENGTH = "LENGTH";
+  private static final String PROFILES = "PROFILES";
   private static final int TRACK_LENGHT_HEADER_SIZE = 13;
 
   private static final String LOGTAG = "RemoteClient/TcpClient";
@@ -227,6 +228,13 @@ public class TcpClient {
             Log.d(LOGTAG, "Loop status changed to " + arg);
           } else if (message[0].equals(SHUFFLE)) {
             Log.d(LOGTAG, "Shuffle status changed to " + arg);
+          } else if (message[0].equals(PROFILES)) {
+            Log.d(LOGTAG, "Profiles available : " + arg);
+            ui.runOnUiThread(new Runnable() {
+              public void run() {
+                ui.setProfiles(arg);
+              }
+            });
           }
         }
 

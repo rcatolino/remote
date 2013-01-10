@@ -40,7 +40,7 @@
 
   {
     "profile-name" : "movies",
-    "proile-data" : [
+    "profile-data" : [
       {
         "app" : "vlc",
         "dbus-name" : "org.mpris.MediaPlayer2.vlc",

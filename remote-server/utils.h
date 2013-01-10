@@ -21,11 +21,15 @@
 #define PROFILE_HEAD "PROFILE "
 #define PROFILE_HEAD_SZ sizeof(PROFILE_HEAD)-1
 
+#define PROFILES_HEAD "PROFILES "
+#define PROFILES_HEAD_SZ sizeof(PROFILES_HEAD)-1
+
 struct proxyParams {
   const char * name;
   const char * path;
   const char * interface;
   GDBusProxy * proxy;
+  int active;
 
   struct proxyParams * prev;
 };

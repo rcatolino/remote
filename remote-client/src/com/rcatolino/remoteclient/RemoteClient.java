@@ -15,6 +15,9 @@ import android.R.id;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -40,6 +43,8 @@ public class RemoteClient extends FragmentActivity
   private static final String stopCmd = "STOP";
   private static final String nextCmd = "NEXT";
   private static final String prevCmd = "PREV";
+  private static final String profileCmd = "PROFILE ";
+  private static final String sleepCmd = "SLEEP";
   private static final String volumeupCmd = "VOLUMEUP";
   private static final String volumedownCmd= "VOLUMEDOWN";
 
@@ -57,6 +62,7 @@ public class RemoteClient extends FragmentActivity
   private TextView playbackTV;
   private ViewPager pager;
   private ImageViewAdapter adapter;
+  private String[] profiles = null;
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -106,6 +112,54 @@ public class RemoteClient extends FragmentActivity
     adapter.setOnPreviousNextListener(this);
   }
 
+  @Override
+  public boolean onCreateOptionsMenu(Menu menu) {
+    MenuInflater inflater = getMenuInflater();
+    inflater.inflate(R.menu.menu, menu);
+    return true;
+  }
+
+  @Override
+  public boolean onPrepareOptionsMenu (Menu menu) {
+    if (profiles == null) {
+      return true;
+    }
+
+    Menu profileMenu = menu.findItem(R.id.profile_menu).getSubMenu();
+    if (profileMenu == null) {
+      Log.d(LOGTAG, "The profile menu item had no submenu!");
+      return true;
+    }
+
+    for (int i=0; i<profiles.length; i++) {
+      profileMenu.add(profiles[i]);
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    if (!connected || client == null) {
+      Log.d(LOGTAG, "We're not connected, can't send profile change command!");
+      return super.onOptionsItemSelected(item);
+    }
+
+    switch (item.getItemId()) {
+      case R.id.sleep:
+        client.sendCommand(sleepCmd);
+        return true;
+      case R.id.profile_menu:
+        return super.onOptionsItemSelected(item);
+      default:
+        if (profiles != null) {
+          client.sendCommand(profileCmd + item.getTitle());
+          clearData();
+          return true;
+        }
+        return super.onOptionsItemSelected(item);
+  }
+}
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
     int action = event.getAction();
@@ -223,6 +277,14 @@ public class RemoteClient extends FragmentActivity
     playPauseB.setClickable(true);
   }
 
+  public void clearData() {
+    setTitle("-");
+    setArtist("-");
+    setAlbum("-");
+    adapter.setBackground(R.drawable.cover_unknown);
+    setPlaybackStatus("Stopped");
+  }
+
   public void setDisconnected() {
     if (!connected) {
       return;
@@ -232,11 +294,7 @@ public class RemoteClient extends FragmentActivity
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
     client = null;
-    setTitle("-");
-    setArtist("-");
-    setAlbum("-");
-    adapter.setBackground(R.drawable.cover_unknown);
-    setPlaybackStatus("Stopped");
+    clearData();
   }
 
   public void setPlaybackStatus(String status) {
@@ -279,6 +337,11 @@ public class RemoteClient extends FragmentActivity
     }
 
     adapter.setBackground(cover);
+  }
+
+  public void setProfiles(String arg) {
+    profiles = arg.split(" ");
+    invalidateOptionsMenu();
   }
 }
 

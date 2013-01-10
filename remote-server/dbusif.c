@@ -27,7 +27,7 @@ static void print_properties (GDBusProxy *proxy)
   g_strfreev (property_names);
 }
 
-static void printProxy(struct proxyParams * pp)
+void printProxy(struct proxyParams * pp)
 {
   char *name_owner;
   name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
@@ -70,8 +70,14 @@ static void on_signal (GDBusProxy *proxy,
 
 static void on_name_owner_notify (GObject    *object,
                                   GParamSpec *pspec,
-                                  gpointer    pp)
+                                  struct proxyParams * pp)
 {
+  char * name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
+  if (name_owner) {
+    pp->active = 1;
+  } else {
+    pp->active = 0;
+  }
   printProxy((struct proxyParams *)pp);
 }
 
@@ -84,7 +90,8 @@ void closeConnection(struct proxyParams * pp) {
   pp->proxy = NULL;
 }
 
-int createConnection(struct proxyParams * pp, GCallback onPropertyChanged)
+int createConnection(struct proxyParams * pp, GCallback onPropertyChanged,
+                     GCallback onNameOwnerChanged)
 {
   GError *error;
   GDBusProxyFlags flags;
@@ -119,9 +126,15 @@ int createConnection(struct proxyParams * pp, GCallback onPropertyChanged)
   g_signal_connect(proxy, "g-signal",
                    G_CALLBACK(on_signal),
                    pp);
-  g_signal_connect(proxy, "notify::g-name-owner",
-                   G_CALLBACK(on_name_owner_notify),
-                   pp);
+  if (onNameOwnerChanged != NULL) {
+    g_signal_connect(proxy, "notify::g-name-owner",
+                     G_CALLBACK(onNameOwnerChanged),
+                     pp);
+  } else {
+    g_signal_connect(proxy, "notify::g-name-owner",
+                     G_CALLBACK(on_name_owner_notify),
+                     pp);
+  }
   printProxy(pp);
 
   return 0;
