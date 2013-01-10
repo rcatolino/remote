@@ -59,5 +59,6 @@ void printMprisData();
 void sendCachedData();
 int createMprisInstance(struct proxyParams * pp);
 void updateMprisClientSocket(int socketd);
+void deleteMprisInstance();
 
 #endif

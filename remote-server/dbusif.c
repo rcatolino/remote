@@ -75,39 +75,14 @@ static void on_name_owner_notify (GObject    *object,
   printProxy((struct proxyParams *)pp);
 }
 
-/*
-static void onPropertiesChanged(GDBusProxy          *proxy,
-                                GVariant            *changed_properties,
-                                const gchar* const  *invalidated_properties,
-                                gpointer             pp)
-{
-  if (g_variant_n_children(changed_properties) > 0) {
-    GVariantIter *iter;
-    const gchar *key;
-    GVariant *value;
-
-    debug(" *** Properties Changed:\n");
-    g_variant_get(changed_properties, "a{sv}", &iter);
-    while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
-      gchar *value_str;
-      value_str = g_variant_print(value, TRUE);
-      g_print("      %s -> %s\n", key, value_str);
-      g_free(value_str);
-    }
-
-    g_variant_iter_free (iter);
+void closeConnection(struct proxyParams * pp) {
+  if (!pp->proxy) {
+    return;
   }
 
-  if (g_strv_length ((GStrv) invalidated_properties) > 0) {
-    guint n;
-    g_print (" *** Properties Invalidated:\n");
-    for (n = 0; invalidated_properties[n] != NULL; n++) {
-      const gchar *key = invalidated_properties[n];
-      g_print ("      %s\n", key);
-    }
-  }
+  g_object_unref(pp->proxy);
+  pp->proxy = NULL;
 }
-*/
 
 int createConnection(struct proxyParams * pp, GCallback onPropertyChanged)
 {

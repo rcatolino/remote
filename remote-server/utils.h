@@ -18,12 +18,14 @@
 
 #define DEFAULT_CONFIG "remote-config.json"
 
+#define PROFILE_HEAD "PROFILE "
+#define PROFILE_HEAD_SZ sizeof(PROFILE_HEAD)-1
+
 struct proxyParams {
   const char * name;
   const char * path;
   const char * interface;
   GDBusProxy * proxy;
-  //GHashTable * feedback_table;
 
   struct proxyParams * prev;
 };

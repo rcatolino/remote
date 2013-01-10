@@ -1,5 +1,6 @@
 #include <gio/gio.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "config.h"
@@ -25,11 +26,43 @@ void * processEvents(void * arg) {
   return NULL;
 }
 
+void freeProfileRes(GHashTable * call_table, struct proxyParams * pp) {
+  struct proxyParams * tmp;
+  g_hash_table_remove_all(call_table);
+  tmp = pp;
+  while (tmp) {
+    struct proxyParams * tmppp = tmp->prev;
+    debug("Closing proxy for %s\n", tmp->name);
+    closeConnection(tmp);
+    tmp = tmppp;
+  }
+  deleteMprisInstance();
+}
+
+int createProfile(const char * profile, GHashTable * call_table, struct proxyParams ** pp) {
+  struct proxyParams * tmp;
+  const char * profile_name = chooseProfile(profile);
+
+  if(profile_name == NULL || parseConfig(pp, call_table) == -1 || *pp == NULL) {
+    // Bad config file, proxy/method specifications error.
+    return -1;
+  }
+
+  debug("\nConfig file parsed, for profile %s!\nCreating proxies...\n", profile_name);
+  tmp = *pp;
+  while (tmp) {
+    debug("Creating proxy for %s\n", tmp->name);
+    createConnection(tmp, NULL);
+    tmp = tmp->prev;
+  }
+
+  return 0;
+}
+
 int main(int argc, char *argv[]) {
   int socketd;
   char buff[MAX_CMD_SIZE+1];
   struct proxyParams * pp;
-  const char * profile_name;
 
   GHashTable * call_table;
   GError * error;
@@ -61,23 +94,15 @@ int main(int argc, char *argv[]) {
   }
 
   debug("\nCommand-line options parsed!\nParsing config file...\n");
-  call_table = g_hash_table_new(g_str_hash, g_str_equal);
+  call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
+                                     (GDestroyNotify)free, (GDestroyNotify)free);
   if(loadConfig(opt_config_file) == -1) {
     // Bad config file, json syntax error.
     goto out;
   }
 
-  profile_name = chooseProfile(NULL);
-  if(profile_name == NULL || parseConfig(&pp, call_table) == -1 || pp == NULL) {
-    // Bad config file, proxy/method specifications error.
+  if (createProfile(NULL, call_table, &pp) == -1) {
     goto out;
-  }
-
-  debug("\nConfig file parsed, for profile %s!\nCreating proxies...\n", profile_name);
-  while (pp) {
-    debug("Creating proxy for %s\n", pp->name);
-    createConnection(pp, NULL);
-    pp = pp->prev;
   }
 
   error = NULL;
@@ -124,6 +149,10 @@ int main(int argc, char *argv[]) {
       if (cp) {
         debug("Found method %s() in %s associated with command %s. Calling...\n", cp->method, cp->proxy->name, buff);
         call(cp);
+      } else if (strlen(buff) > PROFILE_HEAD_SZ &&
+                 strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
+        freeProfileRes(call_table, pp);
+        createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
       }
     }
   }

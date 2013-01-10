@@ -318,6 +318,25 @@ int createMprisInstance(struct proxyParams * pp) {
   return 0;
 }
 
+void deleteMprisInstance() {
+  if (mpris_data == NULL) {
+    debug("There is no mpris instance to delete");
+    return;
+  }
+
+  closeConnection(mpris_data->player);
+  free(mpris_data->player);
+  g_free(mpris_data->title);
+  g_free(mpris_data->artist);
+  g_free(mpris_data->album);
+  g_free(mpris_data->artUrl);
+  g_free(mpris_data->loop);
+  g_free(mpris_data->playback);
+  free(mpris_data);
+  mpris_data = NULL;
+
+}
+
 void updateMprisClientSocket(int socketd) {
   client_socket = socketd;
 }

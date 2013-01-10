@@ -5,6 +5,8 @@
 
 int createConnection(struct proxyParams * pp, GCallback onPropertyChanged);
 
+void closeConnection(struct proxyParams * pp);
+
 int call(struct callParams * cp);
 
 void updateClientSocket(int socketd);
