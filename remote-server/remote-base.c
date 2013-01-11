@@ -10,11 +10,14 @@
 
 static char *opt_config_file = NULL;
 static int opt_port          = DEFAULT_PORT;
+static int opt_daemon        = 0;
 
 static GOptionEntry opt_entries[] =
 {
-  { "config", 'c', 0, G_OPTION_ARG_FILENAME, &opt_config_file, "Config file to use. Default to ./remote-config.json", NULL },
+  { "config", 'c', 0, G_OPTION_ARG_FILENAME, &opt_config_file,
+    "Config file to use. Default to ./remote-config.json", NULL },
   { "port", 'p', 0, G_OPTION_ARG_INT, &opt_port, "Tcp port to listen on. Default to 52000", NULL},
+  { "daemonize", 'd', 0, G_OPTION_ARG_NONE, &opt_daemon, "Launch process in backgrounf", NULL},
   { NULL}
 };
 
@@ -87,6 +90,13 @@ int main(int argc, char *argv[]) {
     g_printerr ("Error parsing options: %s\n", error->message);
     g_error_free(error);
     goto out;
+  }
+
+  if (opt_daemon) {
+    int ret = daemon(1, 0);
+    if (ret == -1) {
+      perror("Could not fork in background ");
+    }
   }
 
   if (opt_config_file == NULL) {
