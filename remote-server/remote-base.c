@@ -170,6 +170,7 @@ int main(int argc, char *argv[]) {
         freeProfileRes(call_table, pp);
         createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
         updateMprisClientSocket(clients);
+        sendCachedData();
       }
     }
   }
