@@ -83,6 +83,11 @@ public class ImageViewAdapter extends FragmentPagerAdapter
       fragments[1] = new ImageViewFragment();
     }
 
+    if (bm == null) {
+      Log.d(LOGTAG, "Bad bitmap");
+      return;
+    }
+
     fragments[1].setBackground(bm);
   }
 

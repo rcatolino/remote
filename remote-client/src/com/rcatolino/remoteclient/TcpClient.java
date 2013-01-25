@@ -176,22 +176,14 @@ public class TcpClient {
         } else {
           final String arg = message[1];
           if (message[0].equals(PLAYBACK)) {
-            ui.runOnUiThread(new Runnable() {
-              public void run() {
-                ui.setPlaybackStatus(arg);
-              }
-            });
+            binder.setPlaybackIfBound(arg);
           } else if (message[0].equals(TRACK)) {
             message = arg.split(" ", 2);
             if (message.length <= 1) {
               if (message[0].equals(COVERART)) {
                 final byte[] file = readFile();
                 Log.d(LOGTAG, "Received " + file.length);
-                ui.runOnUiThread(new Runnable() {
-                  public void run() {
-                    ui.setCoverArt(file);
-                  }
-                });
+                binder.setCoverArtIfBound(file);
               } else {
                 Log.d(LOGTAG, "Invalid track data!, no argument.");
               }
@@ -200,25 +192,13 @@ public class TcpClient {
             final String track_arg = message[1];
             if (message[0].equals(TITLE)) {
               Log.d(LOGTAG, "Track title changed to " + track_arg);
-              ui.runOnUiThread(new Runnable() {
-                public void run() {
-                  ui.setTitle(track_arg);
-                }
-              });
+              binder.setTitleIfBound(track_arg);
             } else if (message[0].equals(ARTIST)) {
               Log.d(LOGTAG, "Track artist changed to " + track_arg);
-              ui.runOnUiThread(new Runnable() {
-                public void run() {
-                  ui.setArtist(track_arg);
-                }
-              });
+              binder.setArtistIfBound(track_arg);
             } else if (message[0].equals(ALBUM)) {
               Log.d(LOGTAG, "Track album changed to " + track_arg);
-              ui.runOnUiThread(new Runnable() {
-                public void run() {
-                  ui.setAlbum(track_arg);
-                }
-              });
+              binder.setAlbumIfBound(track_arg);
             } else if (message[0].equals(LENGTH)) {
               ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 4);
               bb.order(ByteOrder.BIG_ENDIAN);
@@ -230,11 +210,7 @@ public class TcpClient {
             Log.d(LOGTAG, "Shuffle status changed to " + arg);
           } else if (message[0].equals(PROFILES)) {
             Log.d(LOGTAG, "Profiles available : " + arg);
-            ui.runOnUiThread(new Runnable() {
-              public void run() {
-                ui.setProfiles(arg);
-              }
-            });
+            binder.setProfilesIfBound(arg);
           }
         }
 
@@ -247,11 +223,7 @@ public class TcpClient {
         Log.d(LOGTAG, "Error on sock.close : " + e.getMessage());
       }
 
-      ui.runOnUiThread(new Runnable() {
-        public void run() {
-          ui.setDisconnected();
-        }
-      });
+      binder.setDisconnected();
       Log.d(LOGTAG, "Set as disconnected");
     }
 
@@ -353,11 +325,7 @@ public class TcpClient {
         Log.d(LOGTAG, "Error on sock.close : " + e.getMessage());
       }
 
-      ui.runOnUiThread(new Runnable() {
-        public void run() {
-          ui.setDisconnected();
-        }
-      });
+      binder.setDisconnected();
       Log.d(LOGTAG, "Set as disconnected");
     }
 
@@ -366,10 +334,11 @@ public class TcpClient {
   private Sender sender;
   private Receiver receiver;
   private Socket sock;
-  private RemoteClient ui;
+  private LocalBinder binder;
 
-  public TcpClient(String host, int port, RemoteClient parent) throws IOException, IllegalArgumentException {
-    ui = parent;
+  public TcpClient(String host, int port, LocalBinder localBinder)
+                  throws IOException, IllegalArgumentException {
+    binder = localBinder;
     // Open connection :
     sock = new Socket();
     InetSocketAddress adress = new InetSocketAddress(host, port);

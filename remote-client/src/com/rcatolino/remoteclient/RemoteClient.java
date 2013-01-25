@@ -7,10 +7,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.R.id;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
@@ -26,16 +29,13 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import java.io.OutputStream;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
-import java.lang.Thread;
-import java.net.Socket;
-import java.net.InetSocketAddress;
-import java.util.concurrent.SynchronousQueue;
+import java.lang.Runtime;
 
 public class RemoteClient extends FragmentActivity
-                          implements ImageViewAdapter.OnPreviousNextListener {
+                          implements ImageViewAdapter.OnPreviousNextListener,
+                                     ServiceConnection {
 
   private static final String LOGTAG = "RemoteClient";
   private static final String playCmd = "PLAY";
@@ -51,8 +51,8 @@ public class RemoteClient extends FragmentActivity
   private boolean playing = false;
   private DialogListener dialogListener;
   private boolean connected = false;
-  private RemoteClient main;
   private TcpClient client;
+  private LocalBinder binder;
 
   private Button connectB;
   private ImageButton playPauseB;
@@ -76,7 +76,7 @@ public class RemoteClient extends FragmentActivity
       if (d.shouldConnect() && !connected) {
         Log.d(LOGTAG, "Connecting to " + d.getHost() + ":" + d.getPort());
         try {
-          client = new TcpClient(d.getHost(), d.getPort(), main);
+          client = binder.connect(d.getHost(), d.getPort());
           setConnected(d.getHost(), d.getPort());
         } catch (Exception ex) {
           Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
@@ -96,7 +96,7 @@ public class RemoteClient extends FragmentActivity
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    main = this;
+    bindToService();
     dialogListener = new DialogListener();
     setContentView(R.layout.main);
 
@@ -120,25 +120,6 @@ public class RemoteClient extends FragmentActivity
   }
 
   @Override
-  public boolean onPrepareOptionsMenu (Menu menu) {
-    if (profiles == null) {
-      return true;
-    }
-
-    Menu profileMenu = menu.findItem(R.id.profile_menu).getSubMenu();
-    if (profileMenu == null) {
-      Log.d(LOGTAG, "The profile menu item had no submenu!");
-      return true;
-    }
-
-    for (int i=0; i<profiles.length; i++) {
-      profileMenu.add(profiles[i]);
-    }
-
-    return true;
-  }
-
-  @Override
   public boolean onOptionsItemSelected(MenuItem item) {
     if (!connected || client == null) {
       Log.d(LOGTAG, "We're not connected, can't send profile change command!");
@@ -158,8 +139,45 @@ public class RemoteClient extends FragmentActivity
           return true;
         }
         return super.onOptionsItemSelected(item);
+    }
   }
-}
+
+  @Override
+  public boolean onPrepareOptionsMenu (Menu menu) {
+    if (profiles == null) {
+      return true;
+    }
+
+    Menu profileMenu = menu.findItem(R.id.profile_menu).getSubMenu();
+    if (profileMenu == null) {
+      Log.d(LOGTAG, "The profile menu item had no submenu!");
+      return true;
+    }
+
+    for (int i=0; i<profiles.length; i++) {
+      profileMenu.add(profiles[i]);
+    }
+
+    return true;
+  }
+
+  @Override
+  public void onServiceConnected(ComponentName name, IBinder service) {
+    Log.d(LOGTAG, "Service connected!");
+    binder = (LocalBinder) service;
+    binder.setActivity(this);
+    if (binder.isConnected()) {
+      Log.d(LOGTAG, "The remote was already connected!");
+      setConnected(binder.getHost(), binder.getPort());
+    }
+  }
+
+  @Override
+  public void onServiceDisconnected(ComponentName name) {
+    Log.d(LOGTAG, "Warning, the remote service has been stopped! Stopping activity");
+    Runtime.getRuntime().exit(0);
+  }
+
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
     int action = event.getAction();
@@ -183,6 +201,20 @@ public class RemoteClient extends FragmentActivity
       return true;
     default:
       return super.dispatchKeyEvent(event);
+    }
+  }
+
+  private void bindToService() {
+    Intent intent = new Intent(this, RCService.class);
+    Log.d(LOGTAG, "Binding to service!");
+    try {
+      if (!bindService(intent, this, BIND_AUTO_CREATE)) {
+        Log.d(LOGTAG, "Could not bind to service!");
+        Runtime.getRuntime().exit(0);
+      }
+    } catch (Exception ex) {
+      Log.d(LOGTAG, "Could not bind to service! " + ex.getMessage());
+      Runtime.getRuntime().exit(0);
     }
   }
 
@@ -342,6 +374,10 @@ public class RemoteClient extends FragmentActivity
   public void setProfiles(String arg) {
     profiles = arg.split(" ");
     invalidateOptionsMenu();
+  }
+
+  public void setConnectButtonText(int id) {
+    connectB.setText(id);
   }
 }
 

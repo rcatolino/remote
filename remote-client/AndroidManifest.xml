@@ -7,12 +7,15 @@
                  android:icon="@drawable/icon_64"
                  android:theme="@android:style/Theme.Holo">
         <activity android:name="com.rcatolino.remoteclient.RemoteClient"
+                  android:screenOrientation="portrait"
                   android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service android:name="com.rcatolino.remoteclient.RCService"
+                 android:exported="false"/>
     </application>
     <uses-feature android:name="android.hardware.wifi" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
