@@ -109,7 +109,7 @@ public class TcpClient {
         buffer = new byte[fileSize];
         input.readFully(buffer, 0, fileSize);
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read buffer : " + e.getMessage());
         return null;
       }
 
@@ -121,7 +121,7 @@ public class TcpClient {
       try {
         fileSize = input.readInt();
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read file size : " + e.getMessage());
         return 0;
       }
 
@@ -143,7 +143,7 @@ public class TcpClient {
           return new byte[1];
         }
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read message : " + e.getMessage());
         return null;
       }
 
@@ -351,6 +351,22 @@ public class TcpClient {
     sender = new Sender(sock);
     receiver = new Receiver(sock);
 
+  }
+  public void startSender() {
+    if (sender == null) {
+      try {
+        sender = new Sender(sock);
+      } catch (Exception ex) {
+        Log.d(LOGTAG, "Could not start sender " + ex.getMessage());
+      }
+    }
+  }
+
+  public void stopSender() {
+    if (sender != null) {
+      sender.stop();
+      sender = null;
+    }
   }
 
   public void stop() {

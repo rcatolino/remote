@@ -21,6 +21,11 @@ public class RCService extends Service {
   }
 
   @Override
+  public void onDestroy() {
+    binder.stopServer();
+  }
+
+  @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
     Log.d(LOGTAG, "Starting service!");
     return START_NOT_STICKY;

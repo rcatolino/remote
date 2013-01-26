@@ -82,8 +82,7 @@ public class RemoteClient extends FragmentActivity
           Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
           connectB.setText(R.string.unco);
           if (client != null) {
-            client.stop();
-            client = null;
+            binder.stopServer();
           }
           return;
         }
@@ -94,9 +93,23 @@ public class RemoteClient extends FragmentActivity
 
   /** Called when the activity is first created. */
   @Override
+  public void onStop() {
+    super.onStop();
+    if (binder != null) {
+      unbindService(this);
+      binder = null;
+    }
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    bindToService();
+  }
+
+  @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    bindToService();
     dialogListener = new DialogListener();
     setContentView(R.layout.main);
 
@@ -169,6 +182,7 @@ public class RemoteClient extends FragmentActivity
     if (binder.isConnected()) {
       Log.d(LOGTAG, "The remote was already connected!");
       setConnected(binder.getHost(), binder.getPort());
+      client = binder.getClient();
     }
   }
 

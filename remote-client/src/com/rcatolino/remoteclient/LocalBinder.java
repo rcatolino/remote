@@ -50,6 +50,10 @@ public class LocalBinder extends Binder {
     return serverPort;
   }
 
+  public TcpClient getClient() {
+    return client;
+  }
+
   public TcpClient connect(String host, int port)
                           throws IOException, IllegalArgumentException {
     if (context == null) {
@@ -66,6 +70,12 @@ public class LocalBinder extends Binder {
 
   public void unbind() {
     context = null;
+  }
+
+  public void stopServer() {
+    parentService.stop();
+    client.stop();
+    client = null;
   }
 
   public void setDisconnected() {
