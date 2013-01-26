@@ -59,7 +59,9 @@ public class ImageViewAdapter extends FragmentPagerAdapter
     }
 
     public void setBackground(Bitmap bm) {
-      imageIV.setImageBitmap(bm);
+      if (imageIV != null) {
+        imageIV.setImageBitmap(bm);
+      }
     }
   }
 

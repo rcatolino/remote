@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
@@ -74,19 +75,7 @@ public class RemoteClient extends FragmentActivity
     public void onDismiss(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
       if (d.shouldConnect() && !connected) {
-        Log.d(LOGTAG, "Connecting to " + d.getHost() + ":" + d.getPort());
-        try {
-          client = new TcpClient(d.getHost(), d.getPort(), main);
-          setConnected(d.getHost(), d.getPort());
-        } catch (Exception ex) {
-          Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
-          connectB.setText(R.string.unco);
-          if (client != null) {
-            client.stop();
-            client = null;
-          }
-          return;
-        }
+        connect(d.getHost(), d.getPort());
       }
     }
 
@@ -110,6 +99,36 @@ public class RemoteClient extends FragmentActivity
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
     adapter.setOnPreviousNextListener(this);
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
+    String serverUrl = serverParams.getString("url", null);
+    int serverPort = serverParams.getInt("port", 0);
+    if (serverUrl != null && serverPort != 0) {
+      connect(serverUrl, serverPort);
+    }
+
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
+    SharedPreferences.Editor editor = serverParams.edit();
+    if (connected) {
+      editor.putString("url", client.getHost());
+      editor.putInt("port", client.getPort());
+      client.stop();
+      client = null;
+    } else {
+      editor.remove("url");
+      editor.remove("port");
+    }
+
+    editor.commit();
   }
 
   @Override
@@ -183,6 +202,23 @@ public class RemoteClient extends FragmentActivity
       return true;
     default:
       return super.dispatchKeyEvent(event);
+    }
+  }
+
+  public void connect(String host, int port) {
+    Log.d(LOGTAG, "Connecting to " + host + ":" + port);
+    try {
+      client = new TcpClient(host, port, this);
+      setConnected(host, port);
+    } catch (Exception ex) {
+      Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
+      connectB.setText(R.string.unco);
+      if (client != null) {
+        client.stop();
+        client = null;
+      }
+
+      return;
     }
   }
 

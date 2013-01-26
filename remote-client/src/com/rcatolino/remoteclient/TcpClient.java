@@ -109,7 +109,7 @@ public class TcpClient {
         buffer = new byte[fileSize];
         input.readFully(buffer, 0, fileSize);
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read file : " + e.getMessage());
         return null;
       }
 
@@ -121,7 +121,7 @@ public class TcpClient {
       try {
         fileSize = input.readInt();
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read file size : " + e.getMessage());
         return 0;
       }
 
@@ -143,7 +143,7 @@ public class TcpClient {
           return new byte[1];
         }
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message from queue : " + e.getMessage());
+        Log.d(LOGTAG, "Could not read message : " + e.getMessage());
         return null;
       }
 
@@ -186,12 +186,14 @@ public class TcpClient {
             if (message.length <= 1) {
               if (message[0].equals(COVERART)) {
                 final byte[] file = readFile();
-                Log.d(LOGTAG, "Received " + file.length);
-                ui.runOnUiThread(new Runnable() {
-                  public void run() {
-                    ui.setCoverArt(file);
-                  }
-                });
+                if (file != null) {
+                  Log.d(LOGTAG, "Received " + file.length);
+                  ui.runOnUiThread(new Runnable() {
+                    public void run() {
+                      ui.setCoverArt(file);
+                    }
+                  });
+                }
               } else {
                 Log.d(LOGTAG, "Invalid track data!, no argument.");
               }
@@ -367,6 +369,8 @@ public class TcpClient {
   private Receiver receiver;
   private Socket sock;
   private RemoteClient ui;
+  private int serverPort;
+  private String serverUrl;
 
   public TcpClient(String host, int port, RemoteClient parent) throws IOException, IllegalArgumentException {
     ui = parent;
@@ -381,7 +385,16 @@ public class TcpClient {
     sock.connect(adress, 1000);
     sender = new Sender(sock);
     receiver = new Receiver(sock);
+    serverPort = port;
+    serverUrl = host;
+  }
 
+  public int getPort() {
+    return serverPort;
+  }
+
+  public String getHost() {
+    return serverUrl;
   }
 
   public void stop() {
