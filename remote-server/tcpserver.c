@@ -74,13 +74,13 @@ int initServer(int listen_port){
   return listen_socketd;
 }
 
-int waitClient(int listenSocket){
+int waitClient(int listen_socket){
 
 	int request_socketd;
 
 	socklen_t client_size = sizeof(client_address);
 
-  request_socketd = accept(listenSocket,\
+  request_socketd = accept(listen_socket,\
     (struct sockaddr *) &client_address, &client_size);
   if (request_socketd == -1)
   {
@@ -95,29 +95,29 @@ int waitClient(int listenSocket){
 	return request_socketd;
 }
 
-void closeClient(int clientSock){
+void closeClient(int client_sock){
 
   debug("Client deconected\n");
-  shutdown(clientSock, SHUT_RDWR);
-	close(clientSock);
+  shutdown(client_sock, SHUT_RDWR);
+	close(client_sock);
 }
 
 int receive(int socketd, char * buff, int size){
   size_t ret = 0;
-  size_t cmdSize = 0;
-  size_t bytesRcv = 0;
+  size_t cmd_size = 0;
+  size_t bytes_rcv = 0;
   // Receive the size of the command.
-  ret=recv(socketd, (void*)(&cmdSize), sizeof(cmdSize), 0);
-  if (checkRet(ret, socketd) == -1 || cmdSize > MAX_CMD_SIZE) {
-    if (cmdSize > MAX_CMD_SIZE) debug("Invalid command size\n");
+  ret=recv(socketd, (void*)(&cmd_size), sizeof(cmd_size), 0);
+  if (checkRet(ret, socketd) == -1 || cmd_size > MAX_CMD_SIZE) {
+    if (cmd_size > MAX_CMD_SIZE) debug("Invalid command size\n");
     return -1;
   }
 
   debug("New command to be received\n");
-  for (bytesRcv=0; bytesRcv<cmdSize; ){
-    ret=recv(socketd, (void*)(buff+bytesRcv), cmdSize-bytesRcv, 0);
-    bytesRcv+=ret;
-    if (checkRet(ret, socketd) == -1 || bytesRcv > MAX_CMD_SIZE) {
+  for (bytes_rcv=0; bytes_rcv<cmd_size; ){
+    ret=recv(socketd, (void*)(buff+bytes_rcv), cmd_size-bytes_rcv, 0);
+    bytes_rcv+=ret;
+    if (checkRet(ret, socketd) == -1 || bytes_rcv > MAX_CMD_SIZE) {
       return -1;
     }
   }

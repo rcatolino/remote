@@ -63,10 +63,10 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
 }
 
 static int fillCallTable(GHashTable * call_table, const struct proxyParams * proxy, json_t * cmd_obj) {
-  char * commandBuff;
-  const char * commandName;
+  char * command_buff;
+  const char * command_name;
   void * iter;
-  json_t * methodName;
+  json_t * method_name;
   struct callParams * tmp;
 
   if (!json_is_object(cmd_obj)) {
@@ -80,23 +80,23 @@ static int fillCallTable(GHashTable * call_table, const struct proxyParams * pro
   }
 
   while (iter) {
-    commandName = json_object_iter_key(iter);
-    methodName = json_object_iter_value(iter);
-    if (methodName == NULL || !json_is_string(methodName) ||
-        strlen(commandName) >= MAX_CMD_SIZE) {
+    command_name = json_object_iter_key(iter);
+    method_name = json_object_iter_value(iter);
+    if (method_name == NULL || !json_is_string(method_name) ||
+        strlen(command_name) >= MAX_CMD_SIZE) {
       debug("Incorrect command/method association, value should be a string \
-and key should be shorter than %d char, for %s\n", MAX_CMD_SIZE, commandName);
+and key should be shorter than %d char, for %s\n", MAX_CMD_SIZE, command_name);
       iter = json_object_iter_next(cmd_obj, iter);
       continue;
     }
 
-    commandBuff = malloc(strlen(commandName)+1);
-    strncpy(commandBuff, commandName, strlen(commandName)+1);
+    command_buff = malloc(strlen(command_name)+1);
+    strncpy(command_buff, command_name, strlen(command_name)+1);
     tmp = malloc(sizeof(struct callParams));
     tmp->proxy = proxy;
-    tmp->method = json_string_value(methodName);
-    g_hash_table_insert(call_table, commandBuff, tmp);
-    debug("Call params for %s inserted into call table\n", commandName);
+    tmp->method = json_string_value(method_name);
+    g_hash_table_insert(call_table, command_buff, tmp);
+    debug("Call params for %s inserted into call table\n", command_name);
     iter = json_object_iter_next(cmd_obj, iter);
   }
 

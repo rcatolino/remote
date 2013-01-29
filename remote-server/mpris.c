@@ -254,7 +254,7 @@ static void updateStatus(struct mprisInstance * instance) {
   debug("Properties updated\n");
 }
 
-static void onNameOwnerChanged(GObject    *object,
+static void on_name_owner_changed(GObject    *object,
                                GParamSpec *pspec,
                                struct proxyParams * pp)
 {
@@ -318,7 +318,7 @@ int createMprisInstance(struct proxyParams * pp) {
   instance->player->active = 0;
   // Create proxy for Player :
   if (createConnection(instance->player, G_CALLBACK(onPropertiesChanged),
-                       G_CALLBACK(onNameOwnerChanged)) == -1) {
+                       G_CALLBACK(on_name_owner_changed)) == -1) {
     debug("Could not create mpris proxy, does this application implement the mrpis protocol?\n");
     free(instance);
     return -1;

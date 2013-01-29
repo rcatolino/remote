@@ -6,7 +6,7 @@
 
 static int client_socket;
 
-static void print_properties (GDBusProxy *proxy)
+static void printProperties (GDBusProxy *proxy)
 {
   gchar **property_names;
   guint n;
@@ -40,7 +40,7 @@ void printProxy(struct proxyParams * pp)
           pp->name,
           pp->path,
           pp->interface);
-    print_properties (pp->proxy);
+    printProperties (pp->proxy);
   } else {
     debug("--- Proxy object is inert - there is no name owner for the name\n"
           "    name:         %s\n"
@@ -53,7 +53,7 @@ void printProxy(struct proxyParams * pp)
   g_free (name_owner);
 }
 
-static void on_signal (GDBusProxy *proxy,
+static void onSignal (GDBusProxy *proxy,
                        gchar      *sender_name,
                        gchar      *signal_name,
                        GVariant   *parameters,
@@ -68,7 +68,7 @@ static void on_signal (GDBusProxy *proxy,
   g_free (parameters_str);
 }
 
-static void on_name_owner_notify (GObject    *object,
+static void onNameOwnerNotify (GObject    *object,
                                   GParamSpec *pspec,
                                   struct proxyParams * pp)
 {
@@ -90,8 +90,8 @@ void closeConnection(struct proxyParams * pp) {
   pp->proxy = NULL;
 }
 
-int createConnection(struct proxyParams * pp, GCallback onPropertyChanged,
-                     GCallback onNameOwnerChanged)
+int createConnection(struct proxyParams * pp, GCallback on_property_changed,
+                     GCallback on_name_owner_changed)
 {
   GError *error;
   GDBusProxyFlags flags;
@@ -117,22 +117,22 @@ int createConnection(struct proxyParams * pp, GCallback onPropertyChanged,
 
   pp->proxy = proxy;
   debug("proxy adress : %p, object type : %s\n", pp->proxy, G_OBJECT_TYPE_NAME(pp->proxy));
-  if (onPropertyChanged != NULL) {
+  if (on_property_changed != NULL) {
     // Only ask to be signaled on this proxy if we need it for feedback
     g_signal_connect(proxy, "g-properties-changed",
-                     G_CALLBACK(onPropertyChanged),
+                     G_CALLBACK(on_property_changed),
                      pp);
   }
   g_signal_connect(proxy, "g-signal",
-                   G_CALLBACK(on_signal),
+                   G_CALLBACK(onSignal),
                    pp);
-  if (onNameOwnerChanged != NULL) {
+  if (on_name_owner_changed != NULL) {
     g_signal_connect(proxy, "notify::g-name-owner",
-                     G_CALLBACK(onNameOwnerChanged),
+                     G_CALLBACK(on_name_owner_changed),
                      pp);
   } else {
     g_signal_connect(proxy, "notify::g-name-owner",
-                     G_CALLBACK(on_name_owner_notify),
+                     G_CALLBACK(onNameOwnerNotify),
                      pp);
   }
   printProxy(pp);

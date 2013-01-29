@@ -7,10 +7,10 @@
 int initServer(int listen_port);
 // Creates a server listening on 'listen_port'.
 
-int waitClient(int listenSocket);
+int waitClient(int listen_socket);
 // Waits for a client to connect on the server. Blocking.
 
-void closeClient(int clientSock);
+void closeClient(int client_sock);
 // Terminates a connection.
 
 int receive(int socketd, char * buff, int size);

@@ -3,8 +3,8 @@
 
 #include "utils.h"
 
-int createConnection(struct proxyParams * pp, GCallback onPropertyChanged,
-                     GCallback onNameOwnerChanged);
+int createConnection(struct proxyParams * pp, GCallback on_property_changed,
+                     GCallback on_name_owner_changed);
 
 void closeConnection(struct proxyParams * pp);
 
