@@ -2,6 +2,5 @@
 *.swp
 *.o
 remote-serv
-bin/
 gen/
 local.properties
