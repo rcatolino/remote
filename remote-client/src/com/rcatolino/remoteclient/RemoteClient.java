@@ -446,7 +446,7 @@ public class RemoteClient extends FragmentActivity
   }
 
   public void setPosition(long position) {
-    if (position > trackLength) {
+    if (trackLength <= 0 || position > trackLength) {
       Log.d(LOGTAG, "Tried to set position superior than trackLength");
       return;
     }

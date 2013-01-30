@@ -304,6 +304,7 @@ void updatePositionFromCache() {
                                G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
   if (ret == NULL) {
     debug("Error getting position : %s\n", error->message);
+    return;
   }
 
   g_variant_get(ret, "(v)", &position);
