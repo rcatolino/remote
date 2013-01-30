@@ -165,6 +165,9 @@ int main(int argc, char *argv[]) {
       if (cp) {
         debug("Found method %s() in %s associated with command %s. Calling...\n", cp->method, cp->proxy->name, buff);
         call(cp);
+      } else if (strlen(buff) >= POSITION_REQ_SZ &&
+                 strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
+        updatePositionFromCache();
       } else if (strlen(buff) > PROFILE_HEAD_SZ &&
                  strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
         freeProfileRes(call_table, pp);

@@ -25,6 +25,7 @@ import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.OutputStream;
@@ -33,7 +34,10 @@ import java.lang.IllegalArgumentException;
 import java.lang.Thread;
 import java.net.Socket;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class RemoteClient extends FragmentActivity
                           implements ImageViewAdapter.OnPreviousNextListener {
@@ -43,6 +47,7 @@ public class RemoteClient extends FragmentActivity
   private static final String pauseCmd = "PAUSE";
   private static final String stopCmd = "STOP";
   private static final String nextCmd = "NEXT";
+  private static final String positionCmd = "POSITION";
   private static final String prevCmd = "PREV";
   private static final String profileCmd = "PROFILE ";
   private static final String sleepCmd = "SLEEP";
@@ -54,9 +59,12 @@ public class RemoteClient extends FragmentActivity
   private boolean connected = false;
   private RemoteClient main;
   private TcpClient client;
+  private PositionQuery pQuery;
+  private long trackLength = 0;
 
   private Button connectB;
   private ImageButton playPauseB;
+  private ProgressBar positionPB;
   private TextView titleTV;
   private TextView artistTV;
   private TextView albumTV;
@@ -64,6 +72,44 @@ public class RemoteClient extends FragmentActivity
   private ViewPager pager;
   private ImageViewAdapter adapter;
   private String[] profiles = null;
+
+  private class PositionQuery implements Runnable {
+    private ScheduledThreadPoolExecutor scheduler; 
+    private static final int period = 3;
+
+    public void start() {
+      if (!connected || client == null || scheduler != null) {
+        return;
+      }
+
+      Log.d(LOGTAG, "position query start");
+      scheduler = new ScheduledThreadPoolExecutor(1);
+      try {
+        scheduler.scheduleWithFixedDelay(this, 0, period, TimeUnit.SECONDS);
+      } catch (Exception e) {
+        Log.d(LOGTAG, "scheduler error : " + e.getMessage());
+      }
+    }
+
+    public void stop() {
+      Log.d(LOGTAG, "position query stop");
+      if (scheduler != null) {
+        scheduler.shutdownNow();
+        scheduler = null;
+      }
+    }
+
+    public void run() {
+      Log.d(LOGTAG, "Sending position query");
+      if (!connected || client == null) {
+        stop();
+        return;
+      }
+      if (scheduler != null) {
+        client.sendCommand(positionCmd);
+      }
+    }
+  }
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
@@ -88,6 +134,7 @@ public class RemoteClient extends FragmentActivity
     main = this;
     dialogListener = new DialogListener();
     setContentView(R.layout.main);
+    pQuery = new PositionQuery();
 
     playPauseB = (ImageButton) findViewById(R.id.play_pause);
     connectB = (Button) findViewById(R.id.connect_button);
@@ -95,6 +142,7 @@ public class RemoteClient extends FragmentActivity
     artistTV = (TextView) findViewById(R.id.artist_text);
     albumTV = (TextView) findViewById(R.id.album_text);
     playbackTV = (TextView) findViewById(R.id.playback_text);
+    positionPB = (ProgressBar) findViewById(R.id.progress_bar);
     pager = (ViewPager) findViewById(R.id.pager);
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
@@ -111,6 +159,18 @@ public class RemoteClient extends FragmentActivity
       connect(serverUrl, serverPort);
     }
 
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    pQuery.stop();
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    pQuery.start();
   }
 
   @Override
@@ -311,6 +371,7 @@ public class RemoteClient extends FragmentActivity
     connected = true;
     connectB.setText("Connected to " + host + ":" + port);
     playPauseB.setClickable(true);
+    pQuery.start();
   }
 
   public void clearData() {
@@ -329,6 +390,7 @@ public class RemoteClient extends FragmentActivity
     connected = false;
     connectB.setText(R.string.unco);
     playPauseB.setClickable(false);
+    pQuery.stop();
     client = null;
     clearData();
   }
@@ -338,14 +400,17 @@ public class RemoteClient extends FragmentActivity
       playPauseB.setImageResource(R.drawable.remote_music_pause);
       playbackTV.setText("Paused");
       playing = false;
+      pQuery.stop();
     } else if (status.equals("Stopped")) {
       playPauseB.setImageResource(R.drawable.remote_music_stop);
       playbackTV.setText("Stopped");
       playing = false;
+      pQuery.stop();
     } else {
       playPauseB.setImageResource(R.drawable.remote_music_play);
       playbackTV.setText("Playing");
       playing = true;
+      pQuery.start();
     }
   }
 
@@ -378,6 +443,21 @@ public class RemoteClient extends FragmentActivity
   public void setProfiles(String arg) {
     profiles = arg.split(" ");
     invalidateOptionsMenu();
+  }
+
+  public void setPosition(long position) {
+    if (position > trackLength) {
+      Log.d(LOGTAG, "Tried to set position superior than trackLength");
+      return;
+    }
+
+    int progress = (int)((100*position)/trackLength);
+    Log.d(LOGTAG, "Setting progress to : " + progress);
+    positionPB.setProgress(progress);
+  }
+
+  public void setTrackLength(long tl) {
+    trackLength = tl;
   }
 }
 

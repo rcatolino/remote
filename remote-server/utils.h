@@ -24,6 +24,9 @@
 #define PROFILES_HEAD "PROFILES "
 #define PROFILES_HEAD_SZ sizeof(PROFILES_HEAD)-1
 
+#define POSITION_REQ "POSITION"
+#define POSITION_REQ_SZ sizeof(POSITION_REQ)-1
+
 struct proxyParams {
   const char * name;
   const char * path;

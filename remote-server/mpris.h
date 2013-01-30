@@ -13,6 +13,8 @@
 #define LOOP_HEAD_SZ sizeof(LOOP_HEAD)-1
 #define PLAYBACK_HEAD_SZ sizeof(PLAYBACK_HEAD)-1
 #define SHUFFLE_SZ sizeof(SHUFFLE_OFF)-1
+#define POSITION "POSITION "
+#define POSITION_SZ sizeof(POSITION)-1
 
 #define TRACK_TITLE "TRACK TITLE "
 #define TRACK_TITLE_SZ sizeof(TRACK_TITLE)-1
@@ -47,6 +49,7 @@ struct mprisInstance {
   char * artist;
   char * album;
   int length;
+  int64_t position;
   char * next;
   char * previous;
   char * artUrl;
@@ -60,5 +63,7 @@ void sendCachedData();
 int createMprisInstance(struct proxyParams * pp);
 void updateMprisClientSocket(int socketd);
 void deleteMprisInstance();
+void sendPosition();
+void updatePositionFromCache();
 
 #endif

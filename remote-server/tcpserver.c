@@ -3,6 +3,7 @@
 #include "utils.h"
 
 #include <arpa/inet.h>
+#include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
@@ -108,8 +109,13 @@ int receive(int socketd, char * buff, int size){
   size_t bytes_rcv = 0;
   // Receive the size of the command.
   ret=recv(socketd, (void*)(&cmd_size), sizeof(cmd_size), 0);
-  if (checkRet(ret, socketd) == -1 || cmd_size > MAX_CMD_SIZE) {
-    if (cmd_size > MAX_CMD_SIZE) debug("Invalid command size\n");
+  if (checkRet(ret, socketd) == -1) {
+    return -1;
+  }
+  cmd_size = be64toh(cmd_size);
+  if (cmd_size > MAX_CMD_SIZE) {
+    debug("Invalid command size, host endian : %ld, network endian : %ld\n",
+          cmd_size, htobe64(cmd_size));
     return -1;
   }
 

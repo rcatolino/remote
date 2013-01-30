@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include <arpa/inet.h>
+#include <endian.h>
 #include <gio/gio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,9 +29,9 @@ void printMprisData() {
     return;
   }
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
-Album : %s, Album cover location : %s\n", mpris_data->playback,
+Album : %s, Album cover location : %s, Position : %ld\n", mpris_data->playback,
 mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
-mpris_data->album, mpris_data->artUrl);
+mpris_data->album, mpris_data->artUrl, mpris_data->position);
 }
 
 static void sendPlaybackStatus() {
@@ -56,6 +57,12 @@ static void sendShuffleStatus() {
   } else {
     transmit(client_socket, SHUFFLE_ON, SHUFFLE_SZ);
   }
+}
+
+void sendPosition() {
+  uint64_t pos = htobe64(mpris_data->position);
+  transmitMsg(client_socket, (char*)&pos, sizeof(uint64_t),
+              POSITION, POSITION_SZ);
 }
 
 static void sendTrackStatus(int property_list) {
@@ -96,6 +103,7 @@ void sendCachedData() {
   sendPlaybackStatus();
   sendLoopStatus();
   sendShuffleStatus();
+  sendPosition();
   sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH | ARTURL);
 }
 
@@ -131,6 +139,13 @@ static void shuffleChanged(int value) {
   if (value != mpris_data->shuffle) {
     mpris_data->shuffle = value;
     sendShuffleStatus();
+  }
+}
+
+static void positionChanged(int64_t value) {
+  if (value != mpris_data->position) {
+    mpris_data->position = value;
+    sendPosition();
   }
 }
 
@@ -219,6 +234,14 @@ static void updateStatus(struct mprisInstance * instance) {
     g_variant_unref(value);
   }
 
+  value = g_dbus_proxy_get_cached_property(instance->player->proxy, "Position");
+  if (value == NULL) {
+    debug("The player %s does not implement the Position property\n", instance->player->name);
+  } else {
+    instance->position = g_variant_get_int64(value);
+    g_variant_unref(value);
+  }
+
   value = g_dbus_proxy_get_cached_property(instance->player->proxy, "Metadata");
   if (value == NULL) {
     debug("The player %s does not implement the Metadata property\n", instance->player->name);
@@ -269,6 +292,25 @@ static void on_name_owner_changed(GObject    *object,
   printProxy(pp);
 }
 
+void updatePositionFromCache() {
+  GError * error;
+  GVariant * ret;
+  GVariant * position;
+  struct proxyParams * pp = mpris_data->player;
+  error = NULL;
+  ret = g_dbus_proxy_call_sync(pp->proxy,
+                               "org.freedesktop.DBus.Properties.Get",
+                               g_variant_new("(ss)", pp->interface, "Position"),
+                               G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+  if (ret == NULL) {
+    debug("Error getting position : %s\n", error->message);
+  }
+
+  g_variant_get(ret, "(v)", &position);
+  g_variant_unref(ret);
+  positionChanged(g_variant_get_int64(position));
+}
+
 static void onPropertiesChanged(GDBusProxy          *proxy,
                                 GVariant            *changed_properties,
                                 const gchar* const  *invalidated_properties,
@@ -294,6 +336,8 @@ static void onPropertiesChanged(GDBusProxy          *proxy,
         loopChanged(g_variant_dup_string(value, NULL));
       } else if (strcmp(key, "Shuffle") == 0) {
         shuffleChanged(g_variant_get_boolean(value));
+      } else if (strcmp(key, "Position") == 0) {
+        positionChanged(g_variant_get_int64(value));
       }
     }
 

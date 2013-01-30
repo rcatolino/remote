@@ -4,10 +4,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.InputStream;
 import java.io.IOException;
 import java.lang.IllegalArgumentException;
 import java.lang.Thread;
@@ -29,6 +29,8 @@ public class TcpClient {
   private static final String COVERART= "COVERART";
   private static final String LENGTH = "LENGTH";
   private static final String PROFILES = "PROFILES";
+  private static final String POSITION = "POSITION";
+  private static final int POSITION_HEADER_SIZE = 9;
   private static final int TRACK_LENGHT_HEADER_SIZE = 13;
 
   private static final String LOGTAG = "RemoteClient/TcpClient";
@@ -132,6 +134,7 @@ public class TcpClient {
       int messageSize = 0;
       byte[] buffer = null;
       try {
+        Log.d(LOGTAG, "Reading int");
         messageSize = input.readInt();
         Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
         if (messageSize < MAX_COMMAND_SIZE) {
@@ -143,7 +146,7 @@ public class TcpClient {
           return new byte[1];
         }
       } catch (Exception e) {
-        Log.d(LOGTAG, "Could not read message : " + e.getMessage());
+        Log.d(LOGTAG, "Could not readInt message : " + e.getMessage());
         return null;
       }
 
@@ -224,12 +227,28 @@ public class TcpClient {
             } else if (message[0].equals(LENGTH)) {
               ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 4);
               bb.order(ByteOrder.BIG_ENDIAN);
-              Log.d(LOGTAG, "Track length changed to " + bb.getInt() + "ms");
+              final long tl = bb.getInt();
+              Log.d(LOGTAG, "Track length changed to " + tl + "ms");
+              ui.runOnUiThread(new Runnable() {
+                public void run() {
+                  ui.setTrackLength(tl);
+                }
+              });
             }
           } else if (message[0].equals(LOOP)) {
             Log.d(LOGTAG, "Loop status changed to " + arg);
           } else if (message[0].equals(SHUFFLE)) {
             Log.d(LOGTAG, "Shuffle status changed to " + arg);
+          } else if (message[0].equals(POSITION)) {
+            ByteBuffer bb = ByteBuffer.wrap(buffer, POSITION_HEADER_SIZE, 8);
+            bb.order(ByteOrder.BIG_ENDIAN);
+            final long pos = bb.getLong();
+            Log.d(LOGTAG, "Track pos changed to " + pos + "ms");
+            ui.runOnUiThread(new Runnable() {
+              public void run() {
+                ui.setPosition(pos);
+              }
+            });
           } else if (message[0].equals(PROFILES)) {
             Log.d(LOGTAG, "Profiles available : " + arg);
             ui.runOnUiThread(new Runnable() {
@@ -261,13 +280,13 @@ public class TcpClient {
   private class Sender implements Runnable {
 
     private SynchronousQueue<String> toSend;
-    private OutputStream output;
+    private DataOutputStream output;
     private boolean stopped = false;
     private Thread execThread;
 
     public Sender(Socket sock) throws IOException {
       toSend = new SynchronousQueue<String>();
-      output = sock.getOutputStream();
+      output = new DataOutputStream(sock.getOutputStream());
 
       // Start thread :
       execThread = new Thread(this);
@@ -277,6 +296,7 @@ public class TcpClient {
     public void stop() {
       Log.d(LOGTAG, "Stopping sender");
       synchronized(this) {
+        Log.d(LOGTAG, "in the stop synchronized");
         stopped = true;
       }
 
@@ -298,17 +318,19 @@ public class TcpClient {
       Log.d(LOGTAG, "Joined thread");
     }
 
-    public void sendCommand(String command) {
+    public synchronized void sendCommand(String command) {
+      Log.d(LOGTAG, "in the send command synchronized");
       try {
         toSend.put(command);
       } catch (Exception e) {
-        Log.d(LOGTAG, "Sendind command in queue failed : " + e.getMessage());
+        Log.d(LOGTAG, "Sendindg command in queue failed : " + e.getMessage());
       }
     }
 
     private boolean shouldStop() {
       boolean shouldStop = false;
       synchronized(this) {
+        Log.d(LOGTAG, "in the shouldStop synchronized");
         shouldStop = stopped;
       }
 
@@ -340,7 +362,7 @@ public class TcpClient {
 
         //bufferSize = new Integer(buffer.length);
         try {
-          output.write(buffer.length);
+          output.writeLong(buffer.length);
           output.write(buffer);
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not send data : " + e.getMessage());
