@@ -60,8 +60,8 @@ static void sendShuffleStatus() {
 }
 
 void sendPosition() {
-  uint64_t pos = htobe64(mpris_data->position);
-  transmitMsg(client_socket, (char*)&pos, sizeof(uint64_t),
+  int64_t pos = htobe64(mpris_data->position);
+  transmitMsg(client_socket, (char*)&pos, sizeof(int64_t),
               POSITION, POSITION_SZ);
 }
 
@@ -83,9 +83,9 @@ static void sendTrackStatus(int property_list) {
                 TRACK_ALBUM, TRACK_ALBUM_SZ);
   }
   if (HAS_LENGTH(property_list)) {
-    uint32_t length = htonl(mpris_data->length);
-    debug("sending length\n");
-    transmitMsg(client_socket, (char *)&length, sizeof(uint32_t),
+    int64_t length = htobe64(mpris_data->length);
+    debug("sending length : %ld\n", mpris_data->length);
+    transmitMsg(client_socket, (char *)&length, sizeof(int64_t),
                 TRACK_LENGTH, TRACK_LENGTH_SZ);
   }
   if (HAS_ARTURL(property_list) && mpris_data->artUrl != NULL) {
@@ -153,7 +153,11 @@ static void trackChanged(GVariant * data_map) {
   GVariant * array;
   char * value_str = NULL;
   int ret = 0;
-  int length;
+  int64_t length = 0;
+
+  value_str = g_variant_print (data_map, TRUE);
+  debug("      metadata -> %s\n", value_str);
+  g_free(value_str);
 
   if (!g_variant_lookup(data_map, "xesam:title", "s", &value_str) &&
       !g_variant_lookup(data_map, "xesam:url", "s", &value_str)) {
@@ -180,7 +184,8 @@ static void trackChanged(GVariant * data_map) {
     ret |= ALBUM*propertyMaybeChanged(&mpris_data->album, value_str);
   }
 
-  if (!g_variant_lookup(data_map, "mpris:length", "i", &length)) {
+  if (!g_variant_lookup(data_map, "mpris:length", "i", &length) &&
+      !g_variant_lookup(data_map, "mpris:length", "x", &length)) {
     debug("No metadata on length!\n");
   } else {
     if (length != mpris_data->length) {
@@ -293,12 +298,22 @@ static void on_name_owner_changed(GObject    *object,
 }
 
 void updatePositionProperty() {
+  const GVariantType * type;
+  int64_t pos = 0;
   GVariant * position = updateProperty(mpris_data->player, "Position");
   if (position == NULL) {
     return;
   }
 
-  positionChanged(g_variant_get_int64(position));
+  type = g_variant_get_type(position);
+  if (g_variant_is_of_type(position, G_VARIANT_TYPE_INT32) ||
+      g_variant_is_of_type(position, G_VARIANT_TYPE_UINT32) ||
+      g_variant_is_of_type(position, G_VARIANT_TYPE_INT64) ||
+      g_variant_is_of_type(position, G_VARIANT_TYPE_UINT64)) {
+    g_variant_get(position, (char *)type, &pos);
+    positionChanged(pos);
+  }
+
   g_variant_unref(position);
 }
 

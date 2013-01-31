@@ -48,7 +48,7 @@ struct mprisInstance {
   char * title;
   char * artist;
   char * album;
-  int length;
+  int64_t length;
   int64_t position;
   char * next;
   char * previous;

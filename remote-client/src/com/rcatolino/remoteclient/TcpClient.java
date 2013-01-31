@@ -225,9 +225,9 @@ public class TcpClient {
                 }
               });
             } else if (message[0].equals(LENGTH)) {
-              ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 4);
+              ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 8);
               bb.order(ByteOrder.BIG_ENDIAN);
-              final long tl = bb.getInt();
+              final long tl = bb.getLong();
               Log.d(LOGTAG, "Track length changed to " + tl + "ms");
               ui.runOnUiThread(new Runnable() {
                 public void run() {
