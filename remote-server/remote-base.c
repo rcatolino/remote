@@ -167,7 +167,7 @@ int main(int argc, char *argv[]) {
         call(cp);
       } else if (strlen(buff) >= POSITION_REQ_SZ &&
                  strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
-        updatePositionFromCache();
+        updatePositionProperty();
       } else if (strlen(buff) > PROFILE_HEAD_SZ &&
                  strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
         freeProfileRes(call_table, pp);

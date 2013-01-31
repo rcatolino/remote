@@ -6,6 +6,7 @@
 #include <endian.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <glib.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -19,6 +20,7 @@
 
 static struct sockaddr_in client_address;
 static int client_socket;
+static GMutex mutex;
 
 static int checkRet(int ret, int socketd) {
   if (ret==0){
@@ -91,7 +93,7 @@ int waitClient(int listen_socket){
   debug("new connection\n");
   debug("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
   debug("\tremote port : %d\n", ntohs(client_address.sin_port));
-
+  g_mutex_init(&mutex);
   client_socket = request_socketd;
 	return request_socketd;
 }
@@ -99,6 +101,7 @@ int waitClient(int listen_socket){
 void closeClient(int client_sock){
 
   debug("Client deconected\n");
+  g_mutex_clear(&mutex);
   shutdown(client_sock, SHUT_RDWR);
 	close(client_sock);
 }
@@ -146,22 +149,27 @@ int transmitMsg(int socketd, char * buff, uint32_t size, char * head,
   }
 
   whole_size = htonl(whole_size);
+  g_mutex_lock(&mutex);
   if (send(socketd, &whole_size, sizeof(uint32_t), MSG_MORE)==-1) {
+    g_mutex_unlock(&mutex);
     perror("send size on socket failed");
     return -1;
   }
   if (head) {
     if (send(socketd, head, head_size, MSG_MORE)==-1) {
+      g_mutex_unlock(&mutex);
       perror("send head on socket failed");
       return -1;
     }
   }
 
   if (send(socketd, buff, size, 0)==-1) {
+    g_mutex_unlock(&mutex);
     perror("send on socket failed");
     return -1;
   }
 
+  g_mutex_unlock(&mutex);
   debug("data sent\n");
   return 0;
 }
@@ -209,17 +217,21 @@ int transmitFile(int socketd, const char * path) {
   }
 
   nsize = htonl(size);
+  g_mutex_lock(&mutex);
   if (send(socketd, &nsize, sizeof(uint32_t), MSG_MORE) == -1) {
+    g_mutex_unlock(&mutex);
     perror("send file size ");
     goto out_buff;
   }
 
   debug("Sending file : %u bytes\n", size);
   if (send(socketd, buff, size, 0) == -1) {
+    g_mutex_unlock(&mutex);
     perror("send file ");
     goto out_fd;
   }
 
+  g_mutex_unlock(&mutex);
   close(image);
   free(buff);
   debug("data sent\n");

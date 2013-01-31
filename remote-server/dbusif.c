@@ -6,6 +6,26 @@
 
 static int client_socket;
 
+GVariant * updateProperty(const struct proxyParams * pp,
+                          const char * prop_name) {
+  GError * error;
+  GVariant * ret;
+  GVariant * property;
+  error = NULL;
+  ret = g_dbus_proxy_call_sync(pp->proxy,
+                               "org.freedesktop.DBus.Properties.Get",
+                               g_variant_new("(ss)", pp->interface, prop_name),
+                               G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+  if (ret == NULL) {
+    debug("Error getting property %s : %s\n", prop_name, error->message);
+    return NULL;
+  }
+
+  g_variant_get(ret, "(v)", &property);
+  g_variant_unref(ret);
+  return property;
+}
+
 static void printProperties (GDBusProxy *proxy)
 {
   gchar **property_names;

@@ -64,6 +64,6 @@ int createMprisInstance(struct proxyParams * pp);
 void updateMprisClientSocket(int socketd);
 void deleteMprisInstance();
 void sendPosition();
-void updatePositionFromCache();
+void updatePositionProperty();
 
 #endif

@@ -292,24 +292,34 @@ static void on_name_owner_changed(GObject    *object,
   printProxy(pp);
 }
 
-void updatePositionFromCache() {
-  GError * error;
-  GVariant * ret;
-  GVariant * position;
-  struct proxyParams * pp = mpris_data->player;
-  error = NULL;
-  ret = g_dbus_proxy_call_sync(pp->proxy,
-                               "org.freedesktop.DBus.Properties.Get",
-                               g_variant_new("(ss)", pp->interface, "Position"),
-                               G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
-  if (ret == NULL) {
-    debug("Error getting position : %s\n", error->message);
+void updatePositionProperty() {
+  GVariant * position = updateProperty(mpris_data->player, "Position");
+  if (position == NULL) {
     return;
   }
 
-  g_variant_get(ret, "(v)", &position);
-  g_variant_unref(ret);
   positionChanged(g_variant_get_int64(position));
+  g_variant_unref(position);
+}
+
+void updatePlaybackProperty() {
+  GVariant * playback = updateProperty(mpris_data->player, "PlaybackStatus");
+  if (playback == NULL) {
+    return;
+  }
+
+  playbackChanged(g_variant_dup_string(playback, NULL));
+  g_variant_unref(playback);
+}
+
+void updateTrackProperty() {
+  GVariant * metadata = updateProperty(mpris_data->player, "Metadata");
+  if (metadata == NULL) {
+    return;
+  }
+
+  trackChanged(metadata);
+  g_variant_unref(metadata);
 }
 
 static void onPropertiesChanged(GDBusProxy          *proxy,
@@ -377,6 +387,16 @@ int createMprisInstance(struct proxyParams * pp) {
   updateStatus(instance);
   mpris_data = instance;
   printMprisData();
+  // Some players (ie vlc) don't send the signal properties changed when a new client
+  // connects. In this case we won't have any info, then force the update of some properties :
+  if (instance->playback == NULL) {
+    updatePlaybackProperty();
+  }
+
+  if (instance->title == NULL) {
+    updateTrackProperty();
+  }
+
   client_socket = 0;
   return 0;
 }
