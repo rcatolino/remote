@@ -1,5 +1,3 @@
 - Authentication
-- Feedback from an app to the client
-- More controls on the client!!!
-- an actual dbus connection :)
-- tests...
+- Sound streaming to the phone
+- Remote file explorer / Playlist control
