@@ -75,6 +75,35 @@
         }
       }
     ]
+  },
+
+  {
+    "profile-name" : "xbmc",
+    "profile-data" : [
+      {
+        "app" : "xbmc",
+        "dbus-name" : "org.mpris.MediaPlayer2.xbmc",
+        "path" : "/org/mpris/MediaPlayer2",
+        "interface" : "org.mpris.MediaPlayer2.Player",
+        "cmds" : {
+          "PLAY" : "Play",
+          "PAUSE" : "Pause",
+          "STOP" : "Stop",
+          "PREV" : "Previous",
+          "NEXT" : "Next"
+        },
+        "feedback" : "mpris"
+      },
+      {
+        "app" : "power-management",
+        "dbus-name" : "org.freedesktop.PowerManagement",
+        "path" : "/org/freedesktop/PowerManagement",
+        "interface" : "org.freedesktop.PowerManagement",
+        "cmds" : {
+          "SLEEP" : "Suspend"
+        }
+      }
+    ]
   }
 
 ]
