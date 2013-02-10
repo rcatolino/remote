@@ -183,9 +183,6 @@ public class RemoteClient extends FragmentActivity
       editor.putInt("port", client.getPort());
       client.stop();
       client = null;
-    } else {
-      editor.remove("url");
-      editor.remove("port");
     }
 
     editor.commit();
