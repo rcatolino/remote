@@ -4,6 +4,7 @@ package com.rcatolino.remoteclient;
 import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
@@ -13,6 +14,7 @@ import android.widget.ListView;
 
 public class ConnectionDialog extends Dialog implements OnClickListener {
 
+  private static final String LOGTAG = "RemoteClient/ConnectionDialog";
   Button connectB;
   Button cancelB;
   EditText hostET;
@@ -31,12 +33,15 @@ public class ConnectionDialog extends Dialog implements OnClickListener {
     connectB.setOnClickListener(this);
     cancelB = (Button) findViewById(R.id.connect_dialog_cancel_button);
     cancelB.setOnClickListener(this);
-
     hostET = (EditText) findViewById(R.id.hostET);
     portET = (EditText) findViewById(R.id.portET);
   }
 
   public void setHost(String host) {
+    if (hostET == null) {
+      Log.d(LOGTAG, "Cannot set host before inflation");
+      return;
+    }
     hostET.setText(host);
   }
 
@@ -45,6 +50,10 @@ public class ConnectionDialog extends Dialog implements OnClickListener {
   }
 
   public void setPort(int port) {
+    if (portET == null) {
+      Log.d(LOGTAG, "Cannot set port before inflation");
+      return;
+    }
     portET.setText(String.valueOf(port));
   }
 

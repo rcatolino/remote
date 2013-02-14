@@ -13,7 +13,6 @@
         <EditText android:id="@+id/hostET"
                   android:layout_width="fill_parent"
                   android:layout_height="wrap_content"
-                  android:text="@string/default_host"
                   android:minEms="30"
                   />
 
@@ -25,7 +24,6 @@
         <EditText android:id="@+id/portET"
                   android:layout_width="fill_parent"
                   android:layout_height="wrap_content"
-                  android:text="@string/default_port"
                   android:inputType="number|numberSigned|numberDecimal"
                   />
 

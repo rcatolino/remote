@@ -404,7 +404,7 @@ public class TcpClient {
       throw new IllegalArgumentException("Bad adress");
     }
 
-    sock.connect(adress, 5000);
+    sock.connect(adress, 1000);
     sender = new Sender(sock);
     receiver = new Receiver(sock);
     serverPort = port;

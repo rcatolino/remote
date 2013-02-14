@@ -23,6 +23,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -113,6 +114,7 @@ public class RemoteClient extends FragmentActivity
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
+
     public void onCancel(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
       Log.d(LOGTAG, "Connection dialog canceled");
@@ -293,8 +295,16 @@ public class RemoteClient extends FragmentActivity
     ConnectionDialog connectD = new ConnectionDialog(this);
     connectD.setOnDismissListener(dialogListener);
     connectD.setOnCancelListener(dialogListener);
-
+    Log.d(LOGTAG, "Dialog listener creation");
+    SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
+    String serverUrl = serverParams.getString("url", null);
+    int serverPort = serverParams.getInt("port", 0);
+    Log.d(LOGTAG, "Last server : " + serverUrl + " Port : " + serverPort);
     connectD.show();
+    if (serverUrl != null && serverPort != 0) {
+      connectD.setHost(serverUrl);
+      connectD.setPort(serverPort);
+    }
   }
 
   public void onPrevious() {
