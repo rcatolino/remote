@@ -404,17 +404,17 @@ public class RemoteClient extends FragmentActivity
 
   public void setPlaybackStatus(String status) {
     if (status.equals("Paused")) {
-      playPauseB.setImageResource(R.drawable.remote_music_pause);
+      playPauseB.setImageResource(R.drawable.remote_music_play);
       playbackTV.setText("Paused");
       playing = false;
       pQuery.stop();
     } else if (status.equals("Stopped")) {
-      playPauseB.setImageResource(R.drawable.remote_music_stop);
+      playPauseB.setImageResource(R.drawable.remote_music_play);
       playbackTV.setText("Stopped");
       playing = false;
       pQuery.stop();
     } else {
-      playPauseB.setImageResource(R.drawable.remote_music_play);
+      playPauseB.setImageResource(R.drawable.remote_music_pause);
       playbackTV.setText("Playing");
       playing = true;
       pQuery.start();
