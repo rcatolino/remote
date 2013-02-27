@@ -7,7 +7,8 @@ EDLFLAGS=-Wall -g #Linker options
 EXE=remote-serv #Binary name
 DEFINES=DEBUG #Preprocessor definitions
 ECHO=@echo
-INCLUDES=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/
+INCLUDES=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
+				 -I/usr/lib/glib-2.0/include/
 
 EOBJ=tcpserver.o remote-base.o config.o dbusif.o mpris.o
 LIBS=-ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
