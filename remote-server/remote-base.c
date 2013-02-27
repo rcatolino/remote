@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
   GOptionContext * opt_context;
   GThread * callback_thread;
 
-  g_thread_init(NULL);
+  //g_thread_init(NULL);
   g_type_init();
   loop = g_main_loop_new(NULL, FALSE);
 
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
   }
 
   error = NULL;
-  callback_thread = g_thread_create(processEvents, loop, FALSE, &error);
+  callback_thread = g_thread_try_new("loop", processEvents, loop, &error);
   if (!callback_thread) {
     debug("Error creating event loop thread : %s\n", error->message);
     g_error_free(error);
