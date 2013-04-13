@@ -17,13 +17,21 @@
         "feedback" : "mpris"
       },
       {
-        "app" : "kmix",
+        "app" : "kmixUp",
         "dbus-name" : "org.kde.kmix",
-        "path" : "/Mixers/0/Master_0",
-        "interface" : "org.kde.KMix.Control",
+        "path" : "/kmix/KMixWindow/actions/increase_volume",
+        "interface" : "org.qtproject.Qt.QAction",
         "cmds" : {
-          "VOLUMEUP" : "increaseVolume",
-          "VOLUMEDOWN" : "decreaseVolume"
+          "VOLUMEUP" : "trigger"
+        }
+      },
+      {
+        "app" : "kmixDown",
+        "dbus-name" : "org.kde.kmix",
+        "path" : "/kmix/KMixWindow/actions/decrease_volume",
+        "interface" : "org.qtproject.Qt.QAction",
+        "cmds" : {
+          "VOLUMEDOWN" : "trigger"
         }
       },
       {
@@ -56,13 +64,21 @@
         "feedback" : "mpris"
       },
       {
-        "app" : "kmix",
+        "app" : "kmixUp",
         "dbus-name" : "org.kde.kmix",
-        "path" : "/Mixers/0/Master_0",
-        "interface" : "org.kde.KMix.Control",
+        "path" : "/kmix/KMixWindow/actions/increase_volume",
+        "interface" : "org.qtproject.Qt.QAction",
         "cmds" : {
-          "VOLUMEUP" : "increaseVolume",
-          "VOLUMEDOWN" : "decreaseVolume"
+          "VOLUMEUP" : "trigger"
+        }
+      },
+      {
+        "app" : "kmixDown",
+        "dbus-name" : "org.kde.kmix",
+        "path" : "/kmix/KMixWindow/actions/decrease_volume",
+        "interface" : "org.qtproject.Qt.QAction",
+        "cmds" : {
+          "VOLUMEDOWN" : "trigger"
         }
       },
       {

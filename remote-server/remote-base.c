@@ -74,24 +74,25 @@ int main(int argc, char *argv[]) {
   GOptionContext * opt_context;
   GThread * callback_thread;
 
-  //g_thread_init(NULL);
+  // Glib initialisation.
   g_type_init();
   loop = g_main_loop_new(NULL, FALSE);
 
+  // Command-line options parsing.
   debug("Parsing options...\n");
   opt_context = g_option_context_new("remote-serv example");
   g_option_context_set_summary(opt_context,
-                                "Example: to listen on port 42000 and read config from \'cfg.json\' use:\n"
-                                "\n"
-                                "  ./remote-serv -p 42000 -c cfg.json");
+                               "Example: to listen on port 42000 and read config from \'cfg.json\' use:\n"
+                               "\n"
+                               "  ./remote-serv -p 42000 -c cfg.json");
   g_option_context_add_main_entries(opt_context, opt_entries, NULL);
   error = NULL;
-  if (!g_option_context_parse (opt_context, &argc, &argv, &error)) {
+  if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
     g_printerr ("Error parsing options: %s\n", error->message);
-    g_error_free(error);
-    goto out;
+    goto error;
   }
 
+  // Options treatment.
   if (opt_daemon) {
     int ret = daemon(1, 0);
     if (ret == -1) {
@@ -105,6 +106,8 @@ int main(int argc, char *argv[]) {
   }
 
   debug("\nCommand-line options parsed!\nParsing config file...\n");
+  // Configuration file parsing/loading/treatment.
+  // (This create all the dbus interface)
   call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
                                      (GDestroyNotify)free, (GDestroyNotify)free);
   if(loadConfig(opt_config_file) == -1) {
@@ -116,14 +119,16 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
+  // Glib event-loop creation. (For the dbus callbacks) (We need another thread
+  // because we're not using glib for the networking.)
   error = NULL;
   callback_thread = g_thread_try_new("loop", processEvents, loop, &error);
   if (!callback_thread) {
     debug("Error creating event loop thread : %s\n", error->message);
-    g_error_free(error);
-    goto out;
+    goto error;
   }
 
+  // Start tcp server.
   debug("\nProxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
   if (socketd == -1) {
@@ -178,6 +183,8 @@ int main(int argc, char *argv[]) {
     }
   }
 
+error:
+  g_error_free(error);
 out:
   g_option_context_free(opt_context);
   g_free(opt_config_file);
