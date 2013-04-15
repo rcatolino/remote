@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "dbusif.h"
+#include "streaming-server.h"
 #include "tcpserver.h"
 #include "utils.h"
 
@@ -119,6 +120,10 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
+#ifdef AUDIO_FEEDBACK
+  createStreamingServer(loop);
+  startStreaming();
+#endif
   // Glib event-loop creation. (For the dbus callbacks) (We need another thread
   // because we're not using glib for the networking.)
   error = NULL;
@@ -188,6 +193,9 @@ error:
 out:
   g_option_context_free(opt_context);
   g_free(opt_config_file);
-
+#ifdef AUDIO_FEEDBACK
+  deleteStreamingServer();
+#endif
+  g_main_loop_unref (loop);
   return 0;
 }
