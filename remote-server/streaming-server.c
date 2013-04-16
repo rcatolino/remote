@@ -34,7 +34,7 @@ int createStreamingServer(GMainLoop * loop) {
   audioconvert = gst_element_factory_make("audioconvert", "converter");
   vorbisencoder = gst_element_factory_make("vorbisenc", "vorbis encoder");
   oggmux = gst_element_factory_make("oggmux", "ogg multiplexer");
-  sink = gst_element_factory_make("filesink", "file sink");
+  sink = gst_element_factory_make("tcpserversink", "network sink");
   if (!pipeline || !source || !audioconvert|| !vorbisencoder|| !oggmux|| !sink) {
     g_printerr ("Error creating gstreamer pipeline.\n");
     return -1;
@@ -43,7 +43,7 @@ int createStreamingServer(GMainLoop * loop) {
   // TODO: Dynamically find out the name of the input device
   g_object_set(G_OBJECT(source), "device",
                "alsa_output.pci-0000_00_1b.0.analog-stereo.monitor", NULL);
-  g_object_set(G_OBJECT(sink), "location", "test.ogg", NULL);
+  g_object_set(G_OBJECT(sink), "port", 52001, "host", "0.0.0.0", NULL);
 
   // Add a message handler
   bus = gst_pipeline_get_bus(GST_PIPELINE (pipeline));
