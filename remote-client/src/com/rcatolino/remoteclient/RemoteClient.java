@@ -76,7 +76,7 @@ public class RemoteClient extends FragmentActivity
   private String[] profiles = null;
 
   private class PositionQuery implements Runnable {
-    private ScheduledThreadPoolExecutor scheduler; 
+    private ScheduledThreadPoolExecutor scheduler;
     private static final int period = 3;
 
     public void start() {
@@ -265,21 +265,30 @@ public class RemoteClient extends FragmentActivity
     }
   }
 
-  public void connect(String host, int port) {
+  public void connect(final String host, final int port) {
+    final RemoteClient context = this;
     Log.d(LOGTAG, "Connecting to " + host + ":" + port);
-    try {
-      client = new TcpClient(host, port, this);
-      setConnected(host, port);
-    } catch (Exception ex) {
-      Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
-      connectB.setText(R.string.unco);
-      if (client != null) {
-        client.stop();
-        client = null;
+    Thread networkThread = new Thread(new Runnable() {
+      public void run() {
+        try {
+          client = new TcpClient(host, port, context);
+          context.runOnUiThread(new Runnable() {
+            public void run() {
+              setConnected(host, port);
+            }
+          });
+        } catch (Exception ex) {
+          Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
+          ex.printStackTrace();
+          connectB.setText(R.string.unco);
+          if (client != null) {
+            client.stop();
+            client = null;
+          }
+        }
       }
-
-      return;
-    }
+    });
+    networkThread.start();
   }
 
   public void showConnectDialog(View connectButton) {
