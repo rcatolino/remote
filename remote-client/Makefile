@@ -6,7 +6,7 @@ libs=$(LIB_PATH)/libgstreamer_android.so $(LIB_PATH)/libmodgstreamer.so
 
 GSTREAMER_SDK_ROOT:=gstreamer-sdk
 
-.PHONY: all install jnilib setup clean-setup android-ndk
+.PHONY: all android-ndk clean clean-setup install jnilib setup
 
 all : $(APK)
 
@@ -20,10 +20,23 @@ $(libs) : ./jni/*.c ./jni/*.mk
 	@echo Building $@ because of $? in $(PWD)
 	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build
 
+clean :
+	ndk-build clean
+	ant clean
+
 install : $(APK)
 	adb install -r $(APK)
 
-setup : android-ndk $(GSTREAMER_SDK_ROOT)
+setup : android-sdk android-ndk $(GSTREAMER_SDK_ROOT)
+
+android-sdk :
+	@if which android 2> /dev/null;\
+		then echo "sdk present";\
+		else echo "No sdk present. You need to install the android ndk at \
+http://developer.android.com/tools/sdk/ndk/index.html";\
+		exit 1;\
+		fi;
+	android update project -s --path . --target 11
 
 android-ndk :
 	@if which ndk-build 2> /dev/null;\
