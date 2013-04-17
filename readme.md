@@ -5,13 +5,19 @@ features using an android phone as a remote control.
 Remote should mainly allow to control media player.
 
 ## Build
-To build the server, you will need libjansson-dev and glib2.0. Once the
+### Server
+To build the server, you will need libjansson-dev, glib2.0 and gstreamer-1.0. Once the
 dependencies satisfied, go into remote-server and `make`.
+You can enable/disable build options in the makefile.
 
-To build the client, you will need a working [android-sdk](http://developer.android.com/sdk/index.html).
+### Client
+To build the client, you will need an up-to-date [android-sdk](http://developer.android.com/sdk/index.html),
+and [android-ndk](http://developer.android.com/tools/sdk/ndk/index.html).
 You should then copy the local.properties.default file to local.properties,
 and edit it to point to your android sdk.
-Then `ant debug` and install it on your phone using [adt](http://developer.android.com/tools/building/building-cmdline.html#RunningOnDevice).
+You can then use the Makefile to setup the gstreamer sdk for android with `make setup`.
+Once the sdk is installed, use `make` to build the client, and `make install` to upload
+it on your phone.
 
 ## Design
 The client should remain as much as possible unaware of the desktop app being
