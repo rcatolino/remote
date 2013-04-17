@@ -5,3 +5,13 @@ remote-serv
 gen/
 local.properties
 .directory
+gst-build/
+libs/
+obj/
+gstreamer/
+assets/
+bin/
+cscope*
+tags
+*.log
+*.out
