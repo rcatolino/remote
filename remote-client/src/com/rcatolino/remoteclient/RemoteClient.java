@@ -29,6 +29,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.OutputStream;
 import java.io.IOException;
@@ -277,10 +278,14 @@ public class RemoteClient extends FragmentActivity
               setConnected(host, port);
             }
           });
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
           Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
-          ex.printStackTrace();
-          connectB.setText(R.string.unco);
+          context.runOnUiThread(new Runnable() {
+            public void run() {
+              connectB.setText(R.string.unco);
+              Toast.makeText(context, ex.getMessage(), Toast.LENGTH_LONG).show();
+            }
+          });
           if (client != null) {
             client.stop();
             client = null;
