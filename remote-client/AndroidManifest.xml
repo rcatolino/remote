@@ -6,6 +6,8 @@
     <application android:label="@string/app_name"
                  android:icon="@drawable/icon_64"
                  android:theme="@android:style/Theme.Holo">
+        <service android:name=".PlaybackService"
+                 android:exported="false"/>
         <activity android:name="com.rcatolino.remoteclient.RemoteClient"
                   android:label="@string/app_name">
             <intent-filter>
@@ -14,9 +16,10 @@
             </intent-filter>
         </activity>
     </application>
+    <uses-sdk android:minSdkVersion="11"
+              android:targetSdkVersion="14"
+              android:maxSdkVersion="17"/>
     <uses-feature android:name="android.hardware.wifi" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
 
 </manifest>

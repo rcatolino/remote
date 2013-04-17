@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -379,6 +380,10 @@ public class RemoteClient extends FragmentActivity
     connectB.setText("Connected to " + host + ":" + port);
     playPauseB.setClickable(true);
     pQuery.start();
+    Intent playback = new Intent(this, PlaybackService.class);
+    playback.putExtra("Host", host);
+    playback.putExtra("Port", port);
+    startService(playback);
   }
 
   public void clearData() {
