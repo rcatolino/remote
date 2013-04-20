@@ -24,7 +24,7 @@ int createStreamingServer(GMainLoop * loop) {
   GError * error = NULL;
 
   if (!gst_init_check(&argc, &argv, &error)) {
-    g_printerr ("Error initializing gstreamer: %s\n", error->message);
+    g_printerr("Error initializing gstreamer: %s\n", error->message);
     g_error_free(error);
     return -1;
   }

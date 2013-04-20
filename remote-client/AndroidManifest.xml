@@ -16,9 +16,8 @@
             </intent-filter>
         </activity>
     </application>
-    <uses-sdk android:minSdkVersion="11"
-              android:targetSdkVersion="14"
-              android:maxSdkVersion="17"/>
+    <uses-sdk android:minSdkVersion="14"
+      android:targetSdkVersion="14"/>
     <uses-feature android:name="android.hardware.wifi" />
     <uses-permission android:name="android.permission.INTERNET"/>
 

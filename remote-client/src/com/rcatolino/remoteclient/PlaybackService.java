@@ -12,10 +12,19 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.gstreamer.GStreamer;
+
 import java.net.Socket;
 import java.net.InetSocketAddress;
 
 public class PlaybackService extends IntentService {
+
+  private native void nativeInit();
+  private native void nativeFinalize();
+  private native void nativePlay();
+  private native void nativePause();
+  private static native boolean nativeClassInit();
+  private long native_custom_data;
 
   //private final LocalBinder binder = new LocalBinder(this);
   private static final String LOGTAG = "RemoteClient/PlaybackService";
@@ -23,11 +32,24 @@ public class PlaybackService extends IntentService {
   private MediaPlayer mp = null;
   private Socket sock = null;
 
+  @Override
+  public void onCreate() {
+    super.onCreate();
+    Log.d(LOGTAG, "Gstreamer initialization");
+    try {
+      GStreamer.init(this);
+    } catch (Exception e) {
+      Log.d(LOGTAG, "Gstreamer.init() failed : " + e.getMessage());
+      return;
+    }
+
+    Log.d(LOGTAG, "Calling nativeInit()");
+    nativeInit();
+    return;
+  }
+
   public PlaybackService() {
     super("PlaybackService");
-    //sock = new Socket();
-    mp = new MediaPlayer();
-    mp.setAudioStreamType(AudioManager.STREAM_MUSIC);
   }
 
   @Override
@@ -40,7 +62,15 @@ public class PlaybackService extends IntentService {
 
     String host = extras.getString("Host");
     int port = extras.getInt("Port");
-    Log.d(LOGTAG, "Showing toast");
+    Log.d(LOGTAG, "Waiting for notification");
+    synchronized(this) {
+      try {
+        wait();
+      } catch (Exception e) {
+        Log.d(LOGTAG, "Failed on wait() : " + e.getMessage());
+      }
+    }
+    Log.d(LOGTAG, "Terminating service");
     /*
     InetSocketAddress adress = new InetSocketAddress(host, port);
     if (adress.isUnresolved()) {
@@ -54,6 +84,19 @@ public class PlaybackService extends IntentService {
       Toast.makeText(context, ex.getMessage(), Toast.LENGTH_SHORT).show();
     }
     */
+  }
+
+  private void setMessage(final String message) {
+    Log.d(LOGTAG, "setMessage : " + message);
+    return;
+  }
+
+  // Called from native code. Native code calls this once it has created its pipeline and
+  // the main loop is running, so it is ready to accept commands.
+  private void onGStreamerInitialized() {
+    Log.d("GStreamer", "Gst initialized.");
+    //notify();
+    nativePlay();
   }
 
   /*
@@ -96,5 +139,9 @@ public class PlaybackService extends IntentService {
     stopSelf();
   }
   */
-
+  static {
+    System.loadLibrary("gstreamer_android");
+    System.loadLibrary("modgstreamer");
+    nativeClassInit();
+  }
 }

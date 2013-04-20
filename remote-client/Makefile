@@ -36,7 +36,7 @@ android-sdk :
 http://developer.android.com/tools/sdk/ndk/index.html";\
 		exit 1;\
 		fi;
-	android update project -s --path . --target 11
+	android update project -s --path . --target 14
 
 android-ndk :
 	@if which ndk-build 2> /dev/null;\
@@ -49,7 +49,7 @@ http://developer.android.com/tools/sdk/ndk/index.html";\
 $(GSTREAMER_SDK_ROOT) :
 	@echo "Downloading gstreamer android-sdk"
 	mkdir $(GSTREAMER_SDK_ROOT)
-	wget "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-release-2012.11.tar.bz2"\
+	wget "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-debug-2012.11.tar.bz2"\
 		-O $(GSTREAMER_SDK_ROOT).tar.bz2
 	tar --directory=$(GSTREAMER_SDK_ROOT) -xjf $(GSTREAMER_SDK_ROOT).tar.bz2
 	mv $(GSTREAMER_SDK_ROOT).tar.bz2 $(GSTREAMER_SDK_ROOT)
