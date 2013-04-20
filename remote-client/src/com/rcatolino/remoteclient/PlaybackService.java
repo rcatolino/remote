@@ -1,6 +1,6 @@
 package com.rcatolino.remoteclient;
 
-import android.app.IntentService;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -17,7 +17,7 @@ import com.gstreamer.GStreamer;
 import java.net.Socket;
 import java.net.InetSocketAddress;
 
-public class PlaybackService extends IntentService {
+public class PlaybackService extends Service {
 
   private native void nativeInit();
   private native void nativeFinalize();
@@ -25,16 +25,22 @@ public class PlaybackService extends IntentService {
   private native void nativePause();
   private static native boolean nativeClassInit();
   private long native_custom_data;
+  private boolean running = false;
+  private boolean gstInitialized = false;
+  private boolean shouldPlay = false;
+  private boolean started = false;
 
   //private final LocalBinder binder = new LocalBinder(this);
   private static final String LOGTAG = "RemoteClient/PlaybackService";
 
   private MediaPlayer mp = null;
   private Socket sock = null;
+  private PlaybackBinder binder = null;
 
   @Override
   public void onCreate() {
     super.onCreate();
+    binder = new PlaybackBinder(this);
     Log.d(LOGTAG, "Gstreamer initialization");
     try {
       GStreamer.init(this);
@@ -43,47 +49,92 @@ public class PlaybackService extends IntentService {
       return;
     }
 
-    Log.d(LOGTAG, "Calling nativeInit()");
-    nativeInit();
     return;
   }
 
-  public PlaybackService() {
-    super("PlaybackService");
+  @Override
+  public int onStartCommand(Intent intent, int flags, int startid) {
+    Log.d(LOGTAG, "Starting service");
+    started = true;
+    return START_NOT_STICKY;
   }
 
   @Override
-  protected void onHandleIntent(Intent intent) {
-    Bundle extras = intent.getExtras();
-    if (extras == null) {
-      Log.d(LOGTAG, "Error, no host/port specified in intent");
+  public IBinder onBind(Intent intent) {
+    if (!running) {
+      Bundle extras = intent.getExtras();
+      if (extras == null) {
+        Log.d(LOGTAG, "Error, no host/port specified in intent");
+        return null;
+      }
+
+      String host = extras.getString("Host");
+      int port = extras.getInt("Port");
+
+      Log.d(LOGTAG, "Calling nativeInit()");
+      nativeInit();
+    }
+
+    return binder;
+  }
+
+  private void start() {
+    startService(new Intent(this, PlaybackService.class));
+  }
+
+  private void stop() {
+    started = false;
+    Log.d(LOGTAG, "Stopping service");
+    stopSelf();
+  }
+
+  @Override
+  public boolean onUnbind(Intent intent) {
+    Log.d(LOGTAG, "Service unbinding");
+    if (started && !shouldPlay) {
+      stop();
+    }
+
+    return false;
+  }
+
+  public boolean getPlaybackStatus() {
+    return shouldPlay;
+  }
+
+  public void startStreaming() {
+    setPlaybackStatus(true);
+    if (!gstInitialized) {
+      Log.d(LOGTAG, "startStreaming failed : GStreamer not initialized");
+    }
+  }
+
+  public void stopStreaming() {
+    setPlaybackStatus(false);
+    if (!gstInitialized) {
+      Log.d(LOGTAG, "stopStreaming failed : GStreamer not initialized");
+    }
+  }
+
+  public void setPlaybackStatus(boolean status) {
+    Log.d(LOGTAG, "Changed playback status to " + status);
+    shouldPlay = status;
+    tryChangePlaybackState();
+  }
+
+  private void tryChangePlaybackState() {
+    if (!gstInitialized) {
       return;
     }
 
-    String host = extras.getString("Host");
-    int port = extras.getInt("Port");
-    Log.d(LOGTAG, "Waiting for notification");
-    synchronized(this) {
-      try {
-        wait();
-      } catch (Exception e) {
-        Log.d(LOGTAG, "Failed on wait() : " + e.getMessage());
+    if (shouldPlay) {
+      nativePlay();
+      if (!started) {
+        start();
       }
+    } else {
+      nativePause();
     }
-    Log.d(LOGTAG, "Terminating service");
-    /*
-    InetSocketAddress adress = new InetSocketAddress(host, port);
-    if (adress.isUnresolved()) {
-      Log.d(LOGTAG, "Adress is unresolved");
-      Toast.makeText(context, "Bad address : " + host + ":" + port, Toast.LENGTH_SHORT).show();
-    }
-
-    try {
-      sock.connect(adress, 1000);
-    } catch (IOException ex) {
-      Toast.makeText(context, ex.getMessage(), Toast.LENGTH_SHORT).show();
-    }
-    */
   }
 
   private void setMessage(final String message) {
@@ -96,15 +147,12 @@ public class PlaybackService extends IntentService {
   private void onGStreamerInitialized() {
     Log.d("GStreamer", "Gst initialized.");
     //notify();
-    nativePlay();
+    gstInitialized = true;
+    running = true;
+    tryChangePlaybackState();
   }
 
   /*
-  @Override
-  public void onCreate() {
-    Log.d(LOGTAG, "Creating service");
-    client = null;
-  }
 
   @Override
   public void onDestroy() {
@@ -121,13 +169,6 @@ public class PlaybackService extends IntentService {
   public IBinder onBind(Intent intent) {
     Log.d(LOGTAG, "Binding service!");
     return binder;
-  }
-
-  @Override
-  public boolean onUnbind(Intent intent) {
-    Log.d(LOGTAG, "Service unbinding");
-    binder.unbind();
-    return false;
   }
 
   public void start() {

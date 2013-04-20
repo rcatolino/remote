@@ -15,5 +15,7 @@
     <string name="server">Server Adress :</string>
     <string name="unco">Not Connected</string>
     <string name="close">Sleep</string>
+    <string name="streaming_on">Streaming On</string>
+    <string name="streaming_off">Streaming Off</string>
     <string name="profile">Profile</string>
 </resources>

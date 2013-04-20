@@ -8,11 +8,13 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.DialogInterface.OnDismissListener;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.R.id;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
@@ -30,6 +32,7 @@ import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import java.io.OutputStream;
 import java.io.IOException;
@@ -43,7 +46,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class RemoteClient extends FragmentActivity
-                          implements ImageViewAdapter.OnPreviousNextListener {
+                          implements ServiceConnection,
+                                     ImageViewAdapter.OnPreviousNextListener {
 
   private static final String LOGTAG = "RemoteClient";
   private static final String playCmd = "PLAY";
@@ -64,6 +68,7 @@ public class RemoteClient extends FragmentActivity
   private TcpClient client;
   private PositionQuery pQuery;
   private long trackLength = 0;
+  private PlaybackBinder binder = null;
 
   private Button connectB;
   private ImageButton playPauseB;
@@ -72,6 +77,7 @@ public class RemoteClient extends FragmentActivity
   private TextView artistTV;
   private TextView albumTV;
   private TextView playbackTV;
+  private ToggleButton streamingB;
   private ViewPager pager;
   private ImageViewAdapter adapter;
   private String[] profiles = null;
@@ -103,7 +109,6 @@ public class RemoteClient extends FragmentActivity
     }
 
     public void run() {
-      Log.d(LOGTAG, "Sending position query");
       if (!connected || client == null) {
         stop();
         return;
@@ -147,6 +152,7 @@ public class RemoteClient extends FragmentActivity
     albumTV = (TextView) findViewById(R.id.album_text);
     playbackTV = (TextView) findViewById(R.id.playback_text);
     positionPB = (ProgressBar) findViewById(R.id.progress_bar);
+    streamingB = (ToggleButton) findViewById(R.id.streaming_button);
     pager = (ViewPager) findViewById(R.id.pager);
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
@@ -238,8 +244,26 @@ public class RemoteClient extends FragmentActivity
           return true;
         }
         return super.onOptionsItemSelected(item);
+    }
   }
-}
+
+  public void onServiceConnected(ComponentName name, IBinder playbackBinder) {
+    Log.d(LOGTAG, "Service connected");
+    binder = (PlaybackBinder) playbackBinder;
+    updateStreamingStatus();
+    if (!streamingB.isChecked()) {
+      streamingB.setChecked(true);
+    }
+  }
+
+  public void onServiceDisconnected(ComponentName name) {
+    Log.d(LOGTAG, "Service disconnected");
+    binder = null;
+    if (streamingB.isChecked()) {
+      streamingB.setChecked(false);
+    }
+  }
+
   @Override
   public boolean dispatchKeyEvent(KeyEvent event) {
     int action = event.getAction();
@@ -379,6 +403,51 @@ public class RemoteClient extends FragmentActivity
     }
   }
 
+  private void updateStreamingStatus() {
+    if (binder == null) {
+      Log.d(LOGTAG, "Don't update streaming status, binder is null");
+      return;
+    }
+
+    binder.setPlaybackStatus(playing);
+  }
+
+  public void toggleStreaming(View streamingButton) {
+    boolean on = ((ToggleButton) streamingButton).isChecked();
+    if (on) {
+      if(!connected || client == null) {
+        Log.d(LOGTAG, "Can't start streaming without any connection");
+        return;
+      }
+
+      if (binder == null) {
+        Intent playback = new Intent(RemoteClient.this, PlaybackService.class);
+        playback.putExtra("Host", client.getHost());
+        playback.putExtra("Port", client.getPort()+1);
+        Log.d(LOGTAG, "Starting playback service");
+        try {
+          if (!bindService(playback, RemoteClient.this, BIND_AUTO_CREATE)) {
+            Log.d(LOGTAG, "Couldn't bind to Playback service");
+          }
+        } catch (Exception e) {
+          Log.d(LOGTAG, "BindService failed : " + e.getMessage());
+        }
+        Log.d(LOGTAG, "bindService returned");
+      } else {
+        updateStreamingStatus();
+      }
+    } else {
+      if (binder == null) {
+        Log.d(LOGTAG, "Toggle Streaming error! Tried to stop streaming without any binder");
+        return;
+      }
+
+      binder.setPlaybackStatus(false);
+      unbindService(this);
+    }
+
+  }
+
   private void setConnected(String host, int port) {
     if (connected) {
       Log.d(LOGTAG, "Attempted to setConnected while already connected");
@@ -394,10 +463,6 @@ public class RemoteClient extends FragmentActivity
     connectB.setText("Connected to " + host + ":" + port);
     playPauseB.setClickable(true);
     pQuery.start();
-    Intent playback = new Intent(this, PlaybackService.class);
-    playback.putExtra("Host", host);
-    playback.putExtra("Port", port);
-    startService(playback);
   }
 
   public void clearData() {
@@ -438,6 +503,8 @@ public class RemoteClient extends FragmentActivity
       playing = true;
       pQuery.start();
     }
+
+    updateStreamingStatus();
   }
 
   public void setTitle(String title) {
@@ -478,7 +545,6 @@ public class RemoteClient extends FragmentActivity
     }
 
     int progress = (int)((100*position)/trackLength);
-    Log.d(LOGTAG, "Setting progress to : " + progress);
     positionPB.setProgress(progress);
   }
 
