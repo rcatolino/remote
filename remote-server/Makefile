@@ -14,7 +14,7 @@ EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o
 LIBS:=-ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
 
 # Build options :
- AUDIO_FEEDBACK=1
+# AUDIO_FEEDBACK=1
 
 # Additional stuff depending on the options :
 ifdef AUDIO_FEEDBACK

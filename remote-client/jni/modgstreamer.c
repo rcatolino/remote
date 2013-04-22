@@ -28,6 +28,8 @@ typedef struct _CustomData {
   GMainContext *context; // GLib context used to run the main loop */
   GMainLoop *main_loop;  // GLib main loop */
   gboolean initialized;  // To avoid informing the UI multiple times about the initialization */
+  jstring host;
+  int port;
 } CustomData;
 
 // These global variables cache values which are not changing during execution */
@@ -115,8 +117,8 @@ static void * create_pipeline(void * in_data) {
   data->context = g_main_context_new();
   g_main_context_push_thread_default(data->context);
 
-  data->pipeline = gst_parse_launch("tcpclientsrc host=192.168.0.11 port=52001 ! \
-                                     oggdemux ! vorbisdec ! audioconvert ! autoaudiosink",
+  data->pipeline = gst_parse_launch("udpsrc port=52001 ! \
+                                     vorbisdec ! audioconvert ! audioresample ! openslessink",
                                      &error);
   /*
   data->pipeline = gst_parse_launch("audiotestsrc ! audioconvert ! audioresample ! autoaudiosink",
@@ -175,7 +177,7 @@ static void * create_pipeline(void * in_data) {
 /*
  * Java Bindings
  */
-static void gst_native_init(JNIEnv * env, jobject thiz) {
+static void gst_native_init(JNIEnv * env, jobject thiz, jstring host, jint port) {
   __android_log_print(ANDROID_LOG_DEBUG, "RemoteClient/Gstreamer", "native_init");
   CustomData * data = g_new0(CustomData, 1);
   SET_CUSTOM_DATA(env, thiz, custom_data_field_id, data);
@@ -185,6 +187,8 @@ static void gst_native_init(JNIEnv * env, jobject thiz) {
   //gst_debug_set_default_threshold(GST_LEVEL_DEBUG);
   LOG_DEBUG("Created CustomData at %p", data);
   data->app = (*env)->NewGlobalRef(env, thiz);
+  data->host = host;
+  data->port = port;
   LOG_DEBUG("Created GlobalRef for app object at %p", data->app);
   pthread_create(&gst_app_thread, NULL, &create_pipeline, data);
 }
@@ -236,7 +240,7 @@ static jboolean gst_native_class_init(JNIEnv* env, jclass class) {
 }
 
 static JNINativeMethod native_methods[] = {
-  { "nativeInit", "()V", (void *) gst_native_init},
+  { "nativeInit", "(Ljava/lang/String;I)V", (void *) gst_native_init},
   { "nativeFinalize", "()V", (void *) gst_native_finalize},
   { "nativePlay", "()V", (void *) gst_native_play},
   { "nativePause", "()V", (void *) gst_native_pause},

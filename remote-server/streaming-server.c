@@ -17,8 +17,9 @@ int createStreamingServer(GMainLoop * loop) {
   GstBus * bus;
   GstElement * source;
   GstElement * audioconvert;
-  GstElement * vorbisencoder;
-  GstElement * oggmux;
+  //GstElement * vorbisencoder;
+  GstElement * encoder;
+  //GstElement * oggmux;
   GstElement * sink;
 
   GError * error = NULL;
@@ -32,6 +33,33 @@ int createStreamingServer(GMainLoop * loop) {
   pipeline = gst_pipeline_new("streaming-server");
   source = gst_element_factory_make("pulsesrc", "pulseaudio source");
   audioconvert = gst_element_factory_make("audioconvert", "converter");
+
+  encoder = gst_element_factory_make("flacenc", "flac encoder");
+  sink = gst_element_factory_make("udpsink", "network sink");
+  if (!pipeline || !source || !audioconvert|| !encoder || !sink) {
+    g_printerr ("Error creating gstreamer pipeline.\n");
+    return -1;
+  }
+
+  // TODO: Dynamically find out the name of the input device
+  g_object_set(G_OBJECT(source), "device",
+               "alsa_output.pci-0000_00_1b.0.analog-stereo.monitor", NULL);
+  g_object_set(G_OBJECT(sink), "blocksize", 64, "host", "0.0.0.0", "port", 52001, "force-ipv4", 1, NULL);
+  g_object_set(G_OBJECT(encoder), "quality", 1, "blocksize", 1024, "hard-resync", 1, NULL);
+
+  // Add a message handler
+  bus = gst_pipeline_get_bus(GST_PIPELINE (pipeline));
+  bus_watch_id = gst_bus_add_watch(bus, busMsgHandler, loop);
+  gst_object_unref (bus);
+
+  // Add the elements to the pipeline
+  gst_bin_add_many(GST_BIN(pipeline), source, audioconvert, encoder,
+                   sink, NULL);
+
+  // Link them
+  gst_element_link_many(source, audioconvert, encoder, sink,
+                        NULL);
+  /*
   vorbisencoder = gst_element_factory_make("vorbisenc", "vorbis encoder");
   oggmux = gst_element_factory_make("oggmux", "ogg multiplexer");
   sink = gst_element_factory_make("tcpserversink", "network sink");
@@ -57,6 +85,7 @@ int createStreamingServer(GMainLoop * loop) {
   // Link them
   gst_element_link_many(source, audioconvert, vorbisencoder, oggmux, sink,
                         NULL);
+  */
 
   return 0;
 }

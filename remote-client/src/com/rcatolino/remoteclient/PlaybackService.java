@@ -6,9 +6,13 @@ import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.WifiLock;
 import android.os.Bundle;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -19,23 +23,24 @@ import java.net.InetSocketAddress;
 
 public class PlaybackService extends Service {
 
-  private native void nativeInit();
+  private native void nativeInit(String host, int port);
   private native void nativeFinalize();
   private native void nativePlay();
   private native void nativePause();
   private static native boolean nativeClassInit();
   private long native_custom_data;
-  private boolean running = false;
-  private boolean gstInitialized = false;
-  private boolean shouldPlay = false;
-  private boolean started = false;
+  private boolean running = false; // Tracks the sate of the gstreamer pipeline
+  private boolean gstInitialized = false; // Tracks the state of the gstreamer lib
+  private boolean shouldPlay = false; // Tracks wether or not we should be playing
+  private boolean started = false; // Tracks the state of the service
 
-  //private final LocalBinder binder = new LocalBinder(this);
   private static final String LOGTAG = "RemoteClient/PlaybackService";
 
   private MediaPlayer mp = null;
   private Socket sock = null;
   private PlaybackBinder binder = null;
+  private WifiLock wifiLock;
+  private WakeLock wakeLock;
 
   @Override
   public void onCreate() {
@@ -49,6 +54,12 @@ public class PlaybackService extends Service {
       return;
     }
 
+    WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+    wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL, "streamingWifiLock");
+    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+    wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "streamingCpuLock");
+    wifiLock.setReferenceCounted(false);
+    wakeLock.setReferenceCounted(false);
     return;
   }
 
@@ -61,20 +72,6 @@ public class PlaybackService extends Service {
 
   @Override
   public IBinder onBind(Intent intent) {
-    if (!running) {
-      Bundle extras = intent.getExtras();
-      if (extras == null) {
-        Log.d(LOGTAG, "Error, no host/port specified in intent");
-        return null;
-      }
-
-      String host = extras.getString("Host");
-      int port = extras.getInt("Port");
-
-      Log.d(LOGTAG, "Calling nativeInit()");
-      nativeInit();
-    }
-
     return binder;
   }
 
@@ -82,24 +79,34 @@ public class PlaybackService extends Service {
     startService(new Intent(this, PlaybackService.class));
   }
 
-  private void stop() {
-    started = false;
+  public void createStreamingPipeline(String host, int port) {
+    if (!running) {
+      Log.d(LOGTAG, "Calling nativeInit()");
+      nativeInit(host, port);
+    }
+  }
+
+  public void stopStreamingPipeline() {
+    nativeFinalize();
+    running=false;
+    gstInitialized=false;
     Log.d(LOGTAG, "Stopping service");
     stopSelf();
+    started = false;
   }
 
   @Override
   public boolean onUnbind(Intent intent) {
     Log.d(LOGTAG, "Service unbinding");
     if (started && !shouldPlay) {
-      stop();
+      stopStreamingPipeline();
     }
 
     return false;
   }
 
   public boolean getPlaybackStatus() {
-    return shouldPlay;
+    return (shouldPlay && running);
   }
 
   public void startStreaming() {
@@ -123,12 +130,31 @@ public class PlaybackService extends Service {
   }
 
   private void tryChangePlaybackState() {
+    /*
+    if (!shouldPlay) {
+      Log.d(LOGTAG, "Releasing locks");
+      wifiLock.release();
+      wakeLock.release();
+    }
+    */
+
     if (!gstInitialized) {
+      Log.d(LOGTAG, "Didn't change the pipeline stat because gst isn't initialized yet");
       return;
     }
 
     if (shouldPlay) {
       nativePlay();
+      /*
+      if (!wifiLock.isHeld()) {
+        Log.d(LOGTAG, "Acquiring wifiLock");
+        wifiLock.acquire();
+      }
+      if (!wakeLock.isHeld()) {
+        Log.d(LOGTAG, "Acquiring wakeLock");
+        wakeLock.acquire();
+      }
+      */
       if (!started) {
         start();
       }
@@ -146,7 +172,6 @@ public class PlaybackService extends Service {
   // the main loop is running, so it is ready to accept commands.
   private void onGStreamerInitialized() {
     Log.d("GStreamer", "Gst initialized.");
-    //notify();
     gstInitialized = true;
     running = true;
     tryChangePlaybackState();
@@ -159,26 +184,6 @@ public class PlaybackService extends Service {
     binder.stopServer();
   }
 
-  @Override
-  public int onStartCommand(Intent intent, int flags, int startId) {
-    Log.d(LOGTAG, "Starting service!");
-    return START_NOT_STICKY;
-  }
-
-  @Override
-  public IBinder onBind(Intent intent) {
-    Log.d(LOGTAG, "Binding service!");
-    return binder;
-  }
-
-  public void start() {
-    startService(new Intent(this, RCService.class));
-  }
-
-  public void stop() {
-    Log.d(LOGTAG, "Stopping service");
-    stopSelf();
-  }
   */
   static {
     System.loadLibrary("gstreamer_android");

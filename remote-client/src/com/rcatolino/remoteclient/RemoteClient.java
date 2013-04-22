@@ -250,6 +250,12 @@ public class RemoteClient extends FragmentActivity
   public void onServiceConnected(ComponentName name, IBinder playbackBinder) {
     Log.d(LOGTAG, "Service connected");
     binder = (PlaybackBinder) playbackBinder;
+    if (client == null) {
+      Log.d(LOGTAG, "Can't start streaming without any connection");
+      return;
+    }
+
+    binder.createStreamingPipeline(client.getHost(), client.getPort()+1);
     updateStreamingStatus();
     if (!streamingB.isChecked()) {
       streamingB.setChecked(true);
@@ -269,8 +275,13 @@ public class RemoteClient extends FragmentActivity
     int action = event.getAction();
     int keyCode = event.getKeyCode();
 
-    if (!connected || client == null) {
+    if (!connected || client == null ) {
       Log.d(LOGTAG, "We're not connected, can't send Volume command");
+      return super.dispatchKeyEvent(event);
+    }
+
+    if (binder != null && binder.isPlaybackOn()) {
+      Log.d(LOGTAG, "Playback is on, change volume locally");
       return super.dispatchKeyEvent(event);
     }
 
@@ -422,8 +433,6 @@ public class RemoteClient extends FragmentActivity
 
       if (binder == null) {
         Intent playback = new Intent(RemoteClient.this, PlaybackService.class);
-        playback.putExtra("Host", client.getHost());
-        playback.putExtra("Port", client.getPort()+1);
         Log.d(LOGTAG, "Starting playback service");
         try {
           if (!bindService(playback, RemoteClient.this, BIND_AUTO_CREATE)) {
@@ -434,6 +443,7 @@ public class RemoteClient extends FragmentActivity
         }
         Log.d(LOGTAG, "bindService returned");
       } else {
+        binder.createStreamingPipeline(client.getHost(), client.getPort()+1);
         updateStreamingStatus();
       }
     } else {
@@ -442,8 +452,9 @@ public class RemoteClient extends FragmentActivity
         return;
       }
 
+      Log.d(LOGTAG, "Toggling off playback");
       binder.setPlaybackStatus(false);
-      unbindService(this);
+      binder.stopStreamingPipeline();
     }
 
   }
@@ -470,7 +481,6 @@ public class RemoteClient extends FragmentActivity
     setArtist("-");
     setAlbum("-");
     adapter.setBackground(R.drawable.cover_unknown);
-    setPlaybackStatus("Stopped");
   }
 
   public void setDisconnected() {
@@ -504,6 +514,7 @@ public class RemoteClient extends FragmentActivity
       pQuery.start();
     }
 
+    Log.d(LOGTAG, "Changing playback streaming according to playing status");
     updateStreamingStatus();
   }
 

@@ -9,7 +9,6 @@
 #include <glib.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,11 +32,6 @@ static int checkRet(int ret, int socketd) {
     debug("Received %d bytes.\n", ret);
   }
   return 0;
-}
-
-void handler(int sigNb) {
-  debug("WATDAFUCK???\n");
-  closeClient(client_socket);
 }
 
 int initServer(int listen_port){

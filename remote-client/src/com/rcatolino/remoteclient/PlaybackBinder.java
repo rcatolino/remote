@@ -15,12 +15,20 @@ public class PlaybackBinder extends Binder {
     parentService = service;
   }
 
-  public boolean getPlaybackStatus() {
+  public boolean isPlaybackOn() {
     return parentService.getPlaybackStatus();
   }
 
   public void setPlaybackStatus(boolean status) {
     parentService.setPlaybackStatus(status);
+  }
+
+  public void stopStreamingPipeline() {
+    parentService.stopStreamingPipeline();
+  }
+
+  public void createStreamingPipeline(String host, int port) {
+    parentService.createStreamingPipeline(host, port);
   }
 
 }
