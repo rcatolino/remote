@@ -27,6 +27,17 @@
 #define POSITION_REQ "POSITION"
 #define POSITION_REQ_SZ sizeof(POSITION_REQ)-1
 
+#ifdef AUDIO_FEEDBACK
+#define STREAMING_ON_REQ "STREAM_ON"
+#define STREAMING_ON_REQ_SZ sizeof(STREAMING_ON_REQ)-1
+
+#define STREAMING_OFF_REQ "STREAM_OFF"
+#define STREAMING_OFF_REQ_SZ sizeof(STREAMING_OFF_REQ)-1
+
+#define STREAMING_STOP "STREAM_STOP"
+#define STREAMING_STOP_SZ sizeof(STREAMING_STOP)-1
+#endif
+
 struct proxyParams {
   const char * name;
   const char * path;

@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 
 public class RemoteClient extends FragmentActivity
                           implements ServiceConnection,
+                                     PlaybackBinder.PipelineStateListener,
                                      ImageViewAdapter.OnPreviousNextListener {
 
   private static final String LOGTAG = "RemoteClient";
@@ -59,8 +60,10 @@ public class RemoteClient extends FragmentActivity
   private static final String profileCmd = "PROFILE ";
   private static final String sleepCmd = "SLEEP";
   private static final String volumeupCmd = "VOLUMEUP";
-  private static final String volumedownCmd= "VOLUMEDOWN";
-
+  private static final String volumedownCmd = "VOLUMEDOWN";
+  private static final String streamonCmd = "STREAM_ON";
+  private static final String streamoffCmd = "STREAM_OFF";
+  private static final String streamstopCmd = "STREAM_STOP";
   private boolean playing = false;
   private DialogListener dialogListener;
   private boolean connected = false;
@@ -162,6 +165,10 @@ public class RemoteClient extends FragmentActivity
   @Override
   public void onStart() {
     super.onStart();
+    if (binder != null) {
+      binder.setPipelineStateListener(this);
+    }
+
     SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
     String serverUrl = serverParams.getString("url", null);
     int serverPort = serverParams.getInt("port", 0);
@@ -186,6 +193,10 @@ public class RemoteClient extends FragmentActivity
   @Override
   public void onStop() {
     super.onStop();
+    if (binder != null) {
+      binder.removePipelineStateListener();
+    }
+
     SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
     SharedPreferences.Editor editor = serverParams.edit();
     if (connected) {
@@ -250,13 +261,13 @@ public class RemoteClient extends FragmentActivity
   public void onServiceConnected(ComponentName name, IBinder playbackBinder) {
     Log.d(LOGTAG, "Service connected");
     binder = (PlaybackBinder) playbackBinder;
+    binder.setPipelineStateListener(this);
     if (client == null) {
       Log.d(LOGTAG, "Can't start streaming without any connection");
       return;
     }
 
-    binder.createStreamingPipeline(client.getHost(), client.getPort()+1);
-    updateStreamingStatus();
+    binder.createStreamingPipeline(client.getPort()+1, playing);
     if (!streamingB.isChecked()) {
       streamingB.setChecked(true);
     }
@@ -264,10 +275,31 @@ public class RemoteClient extends FragmentActivity
 
   public void onServiceDisconnected(ComponentName name) {
     Log.d(LOGTAG, "Service disconnected");
+    binder.removePipelineStateListener();
     binder = null;
     if (streamingB.isChecked()) {
       streamingB.setChecked(false);
     }
+  }
+
+  public void onPipelineConnected() {
+    Log.d(LOGTAG, "Pipeline connected");
+    client.sendCommand(streamonCmd);
+  }
+
+  public void onPipelinePlaying() {
+    Log.d(LOGTAG, "Pipeline playing");
+    // TODO: it could be nice to have a visual cue
+    // that the app is currently streaming, and playing, audio.
+  }
+
+  public void onPipelinePaused() {
+    Log.d(LOGTAG, "Pipeline paused");
+    client.sendCommand(streamoffCmd);
+  }
+
+  public void onDecodeError() {
+    Log.d(LOGTAG, "Stream decode error");
   }
 
   @Override
@@ -428,6 +460,7 @@ public class RemoteClient extends FragmentActivity
     if (on) {
       if(!connected || client == null) {
         Log.d(LOGTAG, "Can't start streaming without any connection");
+        ((ToggleButton) streamingButton).setChecked(false);
         return;
       }
 
@@ -441,10 +474,8 @@ public class RemoteClient extends FragmentActivity
         } catch (Exception e) {
           Log.d(LOGTAG, "BindService failed : " + e.getMessage());
         }
-        Log.d(LOGTAG, "bindService returned");
       } else {
-        binder.createStreamingPipeline(client.getHost(), client.getPort()+1);
-        updateStreamingStatus();
+        binder.createStreamingPipeline(client.getPort()+1, playing);
       }
     } else {
       if (binder == null) {
@@ -453,8 +484,10 @@ public class RemoteClient extends FragmentActivity
       }
 
       Log.d(LOGTAG, "Toggling off playback");
-      binder.setPlaybackStatus(false);
       binder.stopStreamingPipeline();
+      if (connected && client != null) {
+        client.sendCommand(streamstopCmd);
+      }
     }
 
   }

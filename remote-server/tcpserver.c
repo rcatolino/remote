@@ -29,7 +29,7 @@ static int checkRet(int ret, int socketd) {
     perror("recv on socket failed");
     return -1;
   }else{
-    debug("Received %d bytes.\n", ret);
+    //debug("Received %d bytes.\n", ret);
   }
   return 0;
 }
@@ -116,7 +116,6 @@ int receive(int socketd, char * buff, int size){
     return -1;
   }
 
-  debug("New command to be received\n");
   for (bytes_rcv=0; bytes_rcv<cmd_size; ){
     ret=recv(socketd, (void*)(buff+bytes_rcv), cmd_size-bytes_rcv, 0);
     bytes_rcv+=ret;
@@ -125,7 +124,6 @@ int receive(int socketd, char * buff, int size){
     }
   }
 
-  debug("New command received\n");
   return ret;
 }
 
@@ -164,7 +162,7 @@ int transmitMsg(int socketd, char * buff, uint32_t size, char * head,
   }
 
   g_mutex_unlock(&mutex);
-  debug("data sent\n");
+  //debug("data sent\n");
   return 0;
 }
 

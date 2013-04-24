@@ -6,13 +6,14 @@
 #define MPRIS_PLAYER_IF "org.mpris.MediaPlayer2.Player"
 #define MPRIS_TRACKLIST_IF "org.mpris.MediaPlayer2.TrackList"
 
-#define SHUFFLE_OFF "SHUFFLE ON"
-#define SHUFFLE_ON "SHUFFLE OFF"
+#define SHUFFLE_OFF "SHUFFLE OFF"
+#define SHUFFLE_ON "SHUFFLE ON"
 #define LOOP_HEAD "LOOP "
 #define PLAYBACK_HEAD "PLAYBACK "
 #define LOOP_HEAD_SZ sizeof(LOOP_HEAD)-1
 #define PLAYBACK_HEAD_SZ sizeof(PLAYBACK_HEAD)-1
-#define SHUFFLE_SZ sizeof(SHUFFLE_OFF)-1
+#define SHUFFLE_ON_SZ sizeof(SHUFFLE_ON)-1
+#define SHUFFLE_OFF_SZ sizeof(SHUFFLE_OFF)-1
 #define POSITION "POSITION "
 #define POSITION_SZ sizeof(POSITION)-1
 

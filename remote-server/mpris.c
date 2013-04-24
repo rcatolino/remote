@@ -53,9 +53,9 @@ static void sendLoopStatus() {
 
 static void sendShuffleStatus() {
   if (mpris_data->shuffle == 0) {
-    transmit(client_socket, SHUFFLE_OFF, SHUFFLE_SZ);
+    transmit(client_socket, SHUFFLE_OFF, SHUFFLE_OFF_SZ);
   } else {
-    transmit(client_socket, SHUFFLE_ON, SHUFFLE_SZ);
+    transmit(client_socket, SHUFFLE_ON, SHUFFLE_ON_SZ);
   }
 }
 

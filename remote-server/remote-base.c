@@ -120,10 +120,6 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
-#ifdef AUDIO_FEEDBACK
-  createStreamingServer(loop);
-  startStreaming();
-#endif
   // Glib event-loop creation. (For the dbus callbacks) (We need another thread
   // because we're not using glib for the networking.)
   error = NULL;
@@ -170,10 +166,11 @@ int main(int argc, char *argv[]) {
       }
 
       buff[ret]='\0';
-      debug("received : %s\n", buff);
+      //debug("received : %s\n", buff);
       cp = g_hash_table_lookup(call_table, buff);
       if (cp) {
-        debug("Found method %s() in %s associated with command %s. Calling...\n", cp->method, cp->proxy->name, buff);
+        debug("Found method %s() in %s associated with command %s. Calling...\n",
+              cp->method, cp->proxy->name, buff);
         call(cp);
       } else if (strlen(buff) >= POSITION_REQ_SZ &&
                  strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
@@ -185,6 +182,18 @@ int main(int argc, char *argv[]) {
         updateMprisClientSocket(clients);
         sendCachedData();
       }
+#ifdef AUDIO_FEEDBACK
+      else if (strlen(buff) >= STREAMING_ON_REQ_SZ &&
+                 strncmp(buff, STREAMING_ON_REQ, STREAMING_ON_REQ_SZ) == 0) {
+        startStreaming(loop);
+      } else if (strlen(buff) >= STREAMING_OFF_REQ_SZ &&
+                 strncmp(buff, STREAMING_OFF_REQ, STREAMING_OFF_REQ_SZ) == 0) {
+        pauseStreaming();
+      } else if (strlen(buff) >= STREAMING_STOP_SZ &&
+                 strncmp(buff, STREAMING_STOP, STREAMING_STOP_SZ) == 0) {
+        deleteStreamingServer();
+      }
+#endif
     }
   }
 

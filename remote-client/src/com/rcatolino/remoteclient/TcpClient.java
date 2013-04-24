@@ -40,6 +40,7 @@ public class TcpClient {
 
     private DataInputStream input;
     private boolean stopped = false;
+    private Object stoppedLock = new Object();
     private Thread execThread;
 
     public Receiver(Socket sock) throws IOException {
@@ -52,7 +53,7 @@ public class TcpClient {
 
     public void stop() {
       Log.d(LOGTAG, "Stopping receiver");
-      synchronized(this) {
+      synchronized(stoppedLock) {
         stopped = true;
       }
 
@@ -89,7 +90,7 @@ public class TcpClient {
 
     private boolean shouldStop() {
       boolean shouldStop = false;
-      synchronized(this) {
+      synchronized (stoppedLock) {
         shouldStop = stopped;
       }
 
@@ -134,9 +135,9 @@ public class TcpClient {
       int messageSize = 0;
       byte[] buffer = null;
       try {
-        Log.d(LOGTAG, "Reading int");
+        //Log.d(LOGTAG, "Reading int");
         messageSize = input.readInt();
-        Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
+        //Log.d(LOGTAG, "Receiving " + messageSize + " bytes");
         if (messageSize < MAX_COMMAND_SIZE) {
           buffer = new byte[messageSize];
           input.readFully(buffer, 0, messageSize);
@@ -165,15 +166,15 @@ public class TcpClient {
         }
 
         try {
-          Log.d(LOGTAG, "received " + new String(buffer, 0, buffer.length, "US-ASCII") +
-                ", available : " + input.available());
+          //Log.d(LOGTAG, "received " + new String(buffer, 0, buffer.length, "US-ASCII") +
+          //      ", available : " + input.available());
           message = new String(buffer, 0, buffer.length, "US-ASCII").split(" ", 2);
         } catch (Exception e) {
           Log.d(LOGTAG, "Could not split message " + e.getMessage());
           continue;
         }
 
-        Log.d(LOGTAG, "Received message : " + message[0]);
+        //Log.d(LOGTAG, "Received message : " + message[0]);
         if (message.length <= 1) {
           Log.d(LOGTAG, "Invalid message, no argument.");
         } else {
@@ -243,7 +244,6 @@ public class TcpClient {
             ByteBuffer bb = ByteBuffer.wrap(buffer, POSITION_HEADER_SIZE, 8);
             bb.order(ByteOrder.BIG_ENDIAN);
             final long pos = bb.getLong();
-            Log.d(LOGTAG, "Track pos changed to " + pos + "ms");
             ui.runOnUiThread(new Runnable() {
               public void run() {
                 ui.setPosition(pos);
@@ -282,6 +282,7 @@ public class TcpClient {
     private SynchronousQueue<String> toSend;
     private DataOutputStream output;
     private boolean stopped = false;
+    private Object stoppedLock = new Object();
     private Thread execThread;
 
     public Sender(Socket sock) throws IOException {
@@ -295,8 +296,7 @@ public class TcpClient {
 
     public void stop() {
       Log.d(LOGTAG, "Stopping sender");
-      synchronized(this) {
-        Log.d(LOGTAG, "in the stop synchronized");
+      synchronized(stoppedLock) {
         stopped = true;
       }
 
@@ -318,8 +318,7 @@ public class TcpClient {
       Log.d(LOGTAG, "Joined thread");
     }
 
-    public synchronized void sendCommand(String command) {
-      Log.d(LOGTAG, "in the send command synchronized");
+    public void sendCommand(String command) {
       try {
         toSend.put(command);
       } catch (Exception e) {
@@ -329,8 +328,7 @@ public class TcpClient {
 
     private boolean shouldStop() {
       boolean shouldStop = false;
-      synchronized(this) {
-        Log.d(LOGTAG, "in the shouldStop synchronized");
+      synchronized(stoppedLock) {
         shouldStop = stopped;
       }
 

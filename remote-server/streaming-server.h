@@ -11,6 +11,8 @@ int deleteStreamingServer();
 
 int startStreaming();
 
+int pauseStreaming();
+
 #endif
 
 #endif

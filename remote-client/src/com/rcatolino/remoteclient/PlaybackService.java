@@ -23,15 +23,14 @@ import java.net.InetSocketAddress;
 
 public class PlaybackService extends Service {
 
-  private native void nativeInit(String host, int port);
+  private native void nativeInit(int port, boolean initialPipelineState);
   private native void nativeFinalize();
   private native void nativePlay();
   private native void nativePause();
   private static native boolean nativeClassInit();
   private long native_custom_data;
-  private boolean running = false; // Tracks the sate of the gstreamer pipeline
+  private boolean playing = false; // Tracks the sate of the gstreamer pipeline
   private boolean gstInitialized = false; // Tracks the state of the gstreamer lib
-  private boolean shouldPlay = false; // Tracks wether or not we should be playing
   private boolean started = false; // Tracks the state of the service
 
   private static final String LOGTAG = "RemoteClient/PlaybackService";
@@ -39,8 +38,8 @@ public class PlaybackService extends Service {
   private MediaPlayer mp = null;
   private Socket sock = null;
   private PlaybackBinder binder = null;
-  private WifiLock wifiLock;
-  private WakeLock wakeLock;
+  //private WifiLock wifiLock;
+  //private WakeLock wakeLock;
 
   @Override
   public void onCreate() {
@@ -54,12 +53,14 @@ public class PlaybackService extends Service {
       return;
     }
 
+    /*
     WifiManager wm = (WifiManager) getSystemService(Context.WIFI_SERVICE);
     wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL, "streamingWifiLock");
     PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
     wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "streamingCpuLock");
     wifiLock.setReferenceCounted(false);
     wakeLock.setReferenceCounted(false);
+    */
     return;
   }
 
@@ -79,34 +80,37 @@ public class PlaybackService extends Service {
     startService(new Intent(this, PlaybackService.class));
   }
 
-  public void createStreamingPipeline(String host, int port) {
-    if (!running) {
-      Log.d(LOGTAG, "Calling nativeInit()");
-      nativeInit(host, port);
-    }
-  }
-
-  public void stopStreamingPipeline() {
-    nativeFinalize();
-    running=false;
-    gstInitialized=false;
+  private void stop() {
     Log.d(LOGTAG, "Stopping service");
     stopSelf();
     started = false;
   }
 
+  public void createStreamingPipeline(int port, boolean initialPipelineState) {
+    if (!gstInitialized) {
+      Log.d(LOGTAG, "Calling nativeInit(" + port + ")");
+      nativeInit(port, initialPipelineState);
+    }
+  }
+
+  public void stopStreamingPipeline() {
+    nativeFinalize();
+    gstInitialized = false;
+  }
+
   @Override
   public boolean onUnbind(Intent intent) {
     Log.d(LOGTAG, "Service unbinding");
-    if (started && !shouldPlay) {
+    if (started && !playing) {
       stopStreamingPipeline();
+      stop();
     }
 
     return false;
   }
 
   public boolean getPlaybackStatus() {
-    return (shouldPlay && running);
+    return playing;
   }
 
   public void startStreaming() {
@@ -123,38 +127,24 @@ public class PlaybackService extends Service {
     }
   }
 
-  public void setPlaybackStatus(boolean status) {
-    Log.d(LOGTAG, "Changed playback status to " + status);
-    shouldPlay = status;
-    tryChangePlaybackState();
-  }
-
-  private void tryChangePlaybackState() {
-    /*
-    if (!shouldPlay) {
-      Log.d(LOGTAG, "Releasing locks");
-      wifiLock.release();
-      wakeLock.release();
-    }
-    */
-
+  public void setPlaybackStatus(boolean shouldPlay) {
     if (!gstInitialized) {
-      Log.d(LOGTAG, "Didn't change the pipeline stat because gst isn't initialized yet");
+      Log.d(LOGTAG, "setPlaybackStatus : Didn't change the pipeline status because gst isn't initialized yet");
+      return;
+    }
+
+    if (playing && shouldPlay) {
+      Log.d(LOGTAG, "setPlaybackStatus : pipeline already playing, nothing to do");
+      return;
+    }
+
+    if (!playing && !shouldPlay) {
+      Log.d(LOGTAG, "setPlaybackStatus : pipeline already paused, nothing to do");
       return;
     }
 
     if (shouldPlay) {
       nativePlay();
-      /*
-      if (!wifiLock.isHeld()) {
-        Log.d(LOGTAG, "Acquiring wifiLock");
-        wifiLock.acquire();
-      }
-      if (!wakeLock.isHeld()) {
-        Log.d(LOGTAG, "Acquiring wakeLock");
-        wakeLock.acquire();
-      }
-      */
       if (!started) {
         start();
       }
@@ -168,13 +158,30 @@ public class PlaybackService extends Service {
     return;
   }
 
+  private void onPipelineConnected() {
+    binder.onPipelineConnected();
+  }
+
+  private void onPipelinePaused() {
+    playing = false;
+    binder.onPipelinePaused();
+  }
+
+  private void onPipelinePlaying() {
+    playing = true;
+    binder.onPipelinePlaying();
+  }
+
+  private void onDecodeError() {
+    playing = false;
+    binder.onDecodeError();
+  }
+
   // Called from native code. Native code calls this once it has created its pipeline and
   // the main loop is running, so it is ready to accept commands.
   private void onGStreamerInitialized() {
     Log.d("GStreamer", "Gst initialized.");
     gstInitialized = true;
-    running = true;
-    tryChangePlaybackState();
   }
 
   /*
