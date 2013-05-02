@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
 #ifdef AUDIO_FEEDBACK
       else if (strlen(buff) >= STREAMING_ON_REQ_SZ &&
                  strncmp(buff, STREAMING_ON_REQ, STREAMING_ON_REQ_SZ) == 0) {
-        startStreaming(loop);
+        startStreaming(loop, getClientAddress());
       } else if (strlen(buff) >= STREAMING_OFF_REQ_SZ &&
                  strncmp(buff, STREAMING_OFF_REQ, STREAMING_OFF_REQ_SZ) == 0) {
         pauseStreaming();

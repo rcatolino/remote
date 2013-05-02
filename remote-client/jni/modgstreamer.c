@@ -4,6 +4,8 @@
 #include <gst/gst.h>
 #include <pthread.h>
 
+#define CODEC "vorbisdec"
+
 #define LOG_DEBUG(...) __android_log_print(ANDROID_LOG_DEBUG, "RemoteClient/GStreamerMod", __VA_ARGS__)
 #define LOG_ERROR(...) __android_log_print(ANDROID_LOG_ERROR, "RemoteClient/GStreamerMod", __VA_ARGS__)
 GST_DEBUG_CATEGORY_STATIC(debug_category);
@@ -26,7 +28,7 @@ typedef struct _CustomData {
   jobject app;           // Application instance, used to call its methods. A global reference is kept. */
   GstElement *pipeline;  // The running pipeline */
   GstElement *udpsource;
-  GstElement *vorbisdecoder;
+  GstElement *decoder;
   GMainContext *context; // GLib context used to run the main loop */
   GMainLoop *main_loop;  // GLib main loop */
   gboolean initialized;  // To avoid informing the UI multiple times about the initialization */
@@ -110,7 +112,7 @@ static gboolean busMsgHandler(GstBus * bus, GstMessage * msg, void * custom_data
       gst_message_parse_error(msg, &err, &debug_info);
       LOG_ERROR("Error received from element %s: %s", GST_OBJECT_NAME(msg->src), err->message);
       LOG_ERROR("Debugging information: %s", debug_info ? debug_info : "none");
-      if (GST_MESSAGE_SRC(msg) == GST_OBJECT(data->vorbisdecoder) &&
+      if (GST_MESSAGE_SRC(msg) == GST_OBJECT(data->decoder) &&
           err->code == GST_STREAM_ERROR_DECODE) {
         LOG_ERROR("Need to resend vorbis headers");
         (*env)->CallVoidMethod(env, data->app, on_decode_error_id);
@@ -163,7 +165,7 @@ static void * create_pipeline(void * in_data) {
   CustomData * data = (CustomData *) in_data;
   GstBus * bus;
   GstElement * source;
-  GstElement * vorbisdecoder;
+  GstElement * decoder;
   GstElement * audioconvert;
   GstElement * audioresample;
   GstElement * sink;
@@ -186,30 +188,30 @@ static void * create_pipeline(void * in_data) {
 
   data->pipeline = gst_pipeline_new("streaming-client");
   source = gst_element_factory_make("udpsrc", "udpsource");
-  vorbisdecoder = gst_element_factory_make("vorbisdec", "vorbisdecoder");
+  decoder = gst_element_factory_make(CODEC, "decoder");
   audioconvert = gst_element_factory_make("audioconvert", "converter");
   audioresample = gst_element_factory_make("audioresample", "sampler");
   sink = gst_element_factory_make("openslessink", "sink");
-  if (!data->pipeline || !source || !vorbisdecoder || !audioconvert ||
+  if (!data->pipeline || !source || !decoder || !audioconvert ||
       !audioresample || !sink) {
     LOG_ERROR("Error creating gstreamer pipeline.\n");
-    LOG_DEBUG("pipeline : %p, source : %p, vorbisdec : %p, audioconvert : %p,\
+    LOG_DEBUG("pipeline : %p, source : %p, decoder : %p, audioconvert : %p,\
                audioresample : %p, sink : %p\n",
-              data->pipeline, source, vorbisdecoder, audioconvert, audioresample, sink);
+              data->pipeline, source, decoder, audioconvert, audioresample, sink);
     return NULL;
   }
 
   g_object_set(G_OBJECT(source), "do-timestamp", 1, "port", data->port, NULL);
   g_object_set(G_OBJECT(sink), "slave-method", 2, NULL);
   data->udpsource = source;
-  data->vorbisdecoder = vorbisdecoder;
+  data->decoder = decoder;
 
   // Add the elements to the pipeline
-  gst_bin_add_many(GST_BIN(data->pipeline), source, vorbisdecoder,
+  gst_bin_add_many(GST_BIN(data->pipeline), source, decoder,
                    audioconvert, audioresample, sink, NULL);
 
   // Link them
-  gst_element_link_many(source, vorbisdecoder, audioconvert, audioresample, sink,
+  gst_element_link_many(source, decoder, audioconvert, audioresample, sink,
                         NULL);
 
 

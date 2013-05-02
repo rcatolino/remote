@@ -15,6 +15,7 @@ LIBS:=-ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
 
 # Build options :
 AUDIO_FEEDBACK=1
+#AUDIO_CODEC_FLAC=1 #flac and vorbis supported. Vorbis is the default
 
 # Additional stuff depending on the options :
 ifdef AUDIO_FEEDBACK

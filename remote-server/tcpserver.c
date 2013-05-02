@@ -240,3 +240,6 @@ int transmit(int socketd, char * buff, int size) {
   return transmitMsg(socketd, buff, size, NULL, 0);
 }
 
+const char * getClientAddress() {
+  return inet_ntoa(client_address.sin_addr);
+}

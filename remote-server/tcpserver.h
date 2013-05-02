@@ -4,6 +4,11 @@
 #include <stdint.h>
 
 #define FILE_BUF_SIZE 10000
+
+const char * getClientAddress();
+// The address string is stored in a static buffer allocated by inet_ntoa
+// thus each call to inet_ntoa/get_address will override it.
+
 int initServer(int listen_port);
 // Creates a server listening on 'listen_port'.
 

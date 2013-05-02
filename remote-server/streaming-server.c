@@ -4,12 +4,17 @@
 #include "tcpserver.h"
 #include "utils.h"
 
+#ifdef AUDIO_CODEC_FLAC
+  #define CODEC "flacenc"
+#else
+  #define CODEC "vorbisenc"
+#endif
+
 static GstElement * pipeline = NULL;
 static unsigned int bus_watch_id;
 static gboolean busMsgHandler(GstBus * bus, GstMessage * msg, void * data) {
   GError *err;
   gchar *debug_info;
-  //GMainLoop * loop = (GMainLoop*) data;
 
   debug("Received message from bus\n");
   switch (GST_MESSAGE_TYPE(msg)) {
@@ -41,7 +46,7 @@ static gboolean busMsgHandler(GstBus * bus, GstMessage * msg, void * data) {
   return TRUE;
 }
 
-int createStreamingServer(GMainLoop * loop) {
+static int createStreamingServer(GMainLoop * loop, const char * address) {
   int argc = 0;
   char ** argv = NULL;
 
@@ -64,7 +69,7 @@ int createStreamingServer(GMainLoop * loop) {
   source = gst_element_factory_make("pulsesrc", "pulseaudio source");
   audioresample = gst_element_factory_make("audioresample", "sampler");
   audioconvert = gst_element_factory_make("audioconvert", "converter");
-  encoder = gst_element_factory_make("vorbisenc", "encoder");
+  encoder = gst_element_factory_make(CODEC, "encoder");
   sink = gst_element_factory_make("udpsink", "network sink");
   if (!pipeline || !source || !audioresample || !audioconvert|| !encoder || !sink) {
     g_printerr ("Error creating gstreamer pipeline.\n");
@@ -74,7 +79,7 @@ int createStreamingServer(GMainLoop * loop) {
   // TODO: Dynamically find out the name of the input device
   g_object_set(G_OBJECT(source), "device",
                "alsa_output.pci-0000_00_1b.0.analog-stereo.monitor", NULL);
-  g_object_set(G_OBJECT(sink), "host", "192.168.0.0", "port", 52001, "force-ipv4", 1, NULL);
+  g_object_set(G_OBJECT(sink), "host", address, "port", 52001, "force-ipv4", 1, NULL);
 
   // Add a message handler
   bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
@@ -119,9 +124,9 @@ int createStreamingServer(GMainLoop * loop) {
   return 0;
 }
 
-int startStreaming(GMainLoop * loop) {
+int startStreaming(GMainLoop * loop, const char * address) {
   if (pipeline == NULL) {
-    createStreamingServer(loop);
+    createStreamingServer(loop, address);
     if (pipeline == NULL) {
       debug("startStreaming: error, uninitialized pipeline\n");
       return -1;

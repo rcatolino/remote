@@ -5,7 +5,7 @@
 
 #ifdef AUDIO_FEEDBACK
 
-int createStreamingServer(GMainLoop * loop);
+int createStreamingServer(GMainLoop * loop, const char * address);
 
 int deleteStreamingServer();
 
