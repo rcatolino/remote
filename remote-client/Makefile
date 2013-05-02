@@ -4,7 +4,9 @@ APK:=bin/RemoteClient-debug.apk
 LIB_PATH:=libs/$(ARCH)
 libs=$(LIB_PATH)/libgstreamer_android.so $(LIB_PATH)/libmodgstreamer.so
 
-GSTREAMER_SDK_ROOT:=gstreamer-sdk
+GSTREAMER_TARGET:=release# Can be debug or release
+
+GSTREAMER_SDK_ROOT:=gstreamer-sdk-$(GSTREAMER_TARGET)
 
 .PHONY: all android-ndk clean clean-setup install jnilib setup
 
@@ -21,7 +23,7 @@ $(libs) : ./jni/*.c ./jni/*.mk
 	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build
 
 clean :
-	ndk-build clean
+	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build clean
 	ant clean
 
 install : $(APK)
@@ -49,7 +51,7 @@ http://developer.android.com/tools/sdk/ndk/index.html";\
 $(GSTREAMER_SDK_ROOT) :
 	@echo "Downloading gstreamer android-sdk"
 	mkdir $(GSTREAMER_SDK_ROOT)
-	wget "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-debug-2012.11.tar.bz2"\
+	wget "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-$(GSTREAMER_TARGET)-2012.11.tar.bz2"\
 		-O $(GSTREAMER_SDK_ROOT).tar.bz2
 	tar --directory=$(GSTREAMER_SDK_ROOT) -xjf $(GSTREAMER_SDK_ROOT).tar.bz2
 	mv $(GSTREAMER_SDK_ROOT).tar.bz2 $(GSTREAMER_SDK_ROOT)
