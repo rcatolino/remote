@@ -8,7 +8,7 @@ GSTREAMER_TARGET:=release# Can be debug or release
 
 GSTREAMER_SDK_ROOT:=gstreamer-sdk-$(GSTREAMER_TARGET)
 
-.PHONY: all android-ndk clean clean-setup install jnilib setup
+.PHONY: all android-ndk clean clean-setup install jnilib setup smdp
 
 all : $(APK)
 
@@ -29,7 +29,7 @@ clean :
 install : $(APK)
 	adb install -r $(APK)
 
-setup : android-sdk android-ndk $(GSTREAMER_SDK_ROOT)
+setup : android-sdk android-ndk $(GSTREAMER_SDK_ROOT) smdp
 
 android-sdk :
 	@if which android 2> /dev/null;\
@@ -48,6 +48,14 @@ http://developer.android.com/tools/sdk/ndk/index.html";\
 		exit 1;\
 		fi;
 
+smdp :
+	@echo downloading smdp library
+	if git clone http://github.com/rcatolino/smdp.git;\
+		then cd smdp; make;\
+		else cd smdp; git pull origin master; make;\
+		fi;
+	cp smdp/android/libs/armeabi/libsmdp.so libs/armeabi/;
+
 $(GSTREAMER_SDK_ROOT) :
 	@echo "Downloading gstreamer android-sdk"
 	mkdir $(GSTREAMER_SDK_ROOT)
@@ -61,3 +69,4 @@ $(GSTREAMER_SDK_ROOT) :
 clean-setup :
 	-rm -rf $(GSTREAMER_SDK_ROOT)
 	-rm -f $(GSTREAMER_SDK_ROOT).tar.bz2
+	-rm -rf smdp
