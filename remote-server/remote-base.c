@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "dbusif.h"
+#include "service-broadcast.h"
 #include "streaming-server.h"
 #include "tcpserver.h"
 #include "utils.h"
@@ -74,9 +75,10 @@ int main(int argc, char *argv[]) {
   GMainLoop * loop;
   GOptionContext * opt_context;
   GThread * callback_thread;
+  GThread * svc_broadcast_thread;
 
   // Glib initialisation.
-  g_type_init();
+  // g_type_init();
   loop = g_main_loop_new(NULL, FALSE);
 
   // Command-line options parsing.
@@ -129,6 +131,15 @@ int main(int argc, char *argv[]) {
     goto error;
   }
 
+  {
+    int port = opt_port;
+    svc_broadcast_thread = g_thread_try_new("loop", waitForServerUp, &port, &error);
+  }
+  if (!svc_broadcast_thread) {
+    debug("Error creating event loop thread : %s\n", error->message);
+    goto error;
+  }
+
   // Start tcp server.
   debug("\nProxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
@@ -166,7 +177,6 @@ int main(int argc, char *argv[]) {
       }
 
       buff[ret]='\0';
-      //debug("received : %s\n", buff);
       cp = g_hash_table_lookup(call_table, buff);
       if (cp) {
         debug("Found method %s() in %s associated with command %s. Calling...\n",

@@ -7,7 +7,7 @@ Remote should mainly allow to control media player.
 ## Build
 ### Server
 To build the server, you will need libjansson-dev, glib2.0 and gstreamer-1.0. Once the
-dependencies satisfied, go into remote-server and `make`.
+dependencies satisfied, go into remote-server and `make setup` (to pull lib smdp) then `make`.
 You can enable/disable build options in the makefile.
 
 ### Client

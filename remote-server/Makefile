@@ -10,8 +10,8 @@ ECHO:=@echo
 INCLUDES:=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
 				 -I/usr/lib/glib-2.0/include/
 
-EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o
-LIBS:=-ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
+EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o service-broadcast.o
+LIBS:=libsmdp.a -ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
 
 .PHONY: setup smdp
 # Build options :
@@ -25,18 +25,6 @@ ifdef AUDIO_FEEDBACK
 	INCLUDES:=$(INCLUDES) -I/usr/include/gstreamer-1.0/
 	EOBJ:=$(EOBJ) streaming-server.o
 endif
-
-setup : smdp
-
-smdp :
-	@echo downloading smdp library
-	if git clone http://github.com/rcatolino/smdp.git;\
-		then cd smdp; make;\
-		else cd smdp; git pull origin master; make;\
-		fi;
-	cp smdp/src/libsmdp.a ./;
-	cp smdp/src/smdp.h ./;
-
 
 $(EXE): $(EOBJ)
 	@echo building $@
@@ -54,3 +42,15 @@ clean:
 	-@rm -rf *.so*
 	-@rm -rf *~
 	@echo cleaned.
+
+setup : smdp
+
+smdp :
+	@echo downloading smdp library
+	if git clone http://github.com/rcatolino/smdp.git;\
+		then cd smdp; make;\
+		else cd smdp; git pull origin master; make;\
+		fi;
+	cp smdp/src/libsmdp.a ./;
+	cp smdp/src/smdp.h ./;
+
