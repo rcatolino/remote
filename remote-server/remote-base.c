@@ -131,20 +131,20 @@ int main(int argc, char *argv[]) {
     goto error;
   }
 
-  {
-    int port = opt_port;
-    svc_broadcast_thread = g_thread_try_new("loop", waitForServerUp, &port, &error);
-  }
-  if (!svc_broadcast_thread) {
-    debug("Error creating event loop thread : %s\n", error->message);
-    goto error;
-  }
-
-  // Start tcp server.
+    // Start tcp server.
   debug("\nProxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
   if (socketd == -1) {
     goto out;
+  }
+
+  {
+    int port = opt_port;
+    svc_broadcast_thread = g_thread_try_new("loop", serviceBroadcast, &port, &error);
+  }
+  if (!svc_broadcast_thread) {
+    debug("Error creating event loop thread : %s\n", error->message);
+    goto error;
   }
 
   debug("\nConnection created!\n");
