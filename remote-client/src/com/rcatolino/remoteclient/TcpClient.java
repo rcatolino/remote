@@ -392,8 +392,11 @@ public class TcpClient {
   private int serverPort;
   private String serverUrl;
 
-  public TcpClient(String host, int port, RemoteClient parent) throws IOException, IllegalArgumentException {
+  public TcpClient(String host, int port, int timeout, RemoteClient parent)
+                   throws IOException, IllegalArgumentException {
     ui = parent;
+    if (timeout <= 0) timeout = 1000;
+
     // Open connection :
     sock = new Socket();
     InetSocketAddress adress = new InetSocketAddress(host, port);
@@ -402,7 +405,7 @@ public class TcpClient {
       throw new IllegalArgumentException("Bad adress");
     }
 
-    sock.connect(adress, 1000);
+    sock.connect(adress, timeout);
     sender = new Sender(sock);
     receiver = new Receiver(sock);
     serverPort = port;

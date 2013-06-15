@@ -2,7 +2,9 @@ JAVA_SRC_PATH:=src/com/rcatolino/remoteclient
 ARCH:=armeabi
 APK:=bin/RemoteClient-debug.apk
 LIB_PATH:=libs/$(ARCH)
+NDK_OPT:="NDK_DEBUG=1"
 libs=$(LIB_PATH)/libgstreamer_android.so $(LIB_PATH)/libmodgstreamer.so
+smdplib=$(LIB_PATH)/libsmdp.so
 
 GSTREAMER_TARGET:=release# Can be debug or release
 
@@ -12,15 +14,15 @@ GSTREAMER_SDK_ROOT:=gstreamer-sdk-$(GSTREAMER_TARGET)
 
 all : $(APK)
 
-jnilib : $(libs) $(GSTREAMER_SDK_ROOT)
+jnilib : $(libs) $(smdplib) $(GSTREAMER_SDK_ROOT)
 
-$(APK) : $(libs) $(JAVA_SRC_PATH)/*.java
+$(APK) : $(libs) $(smdplib) $(JAVA_SRC_PATH)/*.java
 	@echo Building $@ because of $? in $(PWD)
 	@ant debug
 
 $(libs) : ./jni/*.c ./jni/*.mk
 	@echo Building $@ because of $? in $(PWD)
-	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build
+	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build $(NDK_OPT)
 
 clean :
 	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-build clean
@@ -28,6 +30,9 @@ clean :
 
 install : $(APK)
 	adb install -r $(APK)
+
+debug :
+	@export GSTREAMER_SDK_ROOT_ANDROID=$(PWD)/$(GSTREAMER_SDK_ROOT); ndk-gdb --start --force
 
 setup : android-sdk android-ndk $(GSTREAMER_SDK_ROOT) smdp
 
@@ -55,6 +60,17 @@ smdp :
 		else cd smdp; git pull origin master; make;\
 		fi;
 	cp smdp/android/libs/armeabi/libsmdp.so libs/armeabi/;
+	cp -r smdp/android/src/ ./
+
+
+$(smdplib) :
+	@echo downloading smdp library
+	if git clone http://github.com/rcatolino/smdp.git;\
+		then cd smdp; make;\
+		else cd smdp; git pull origin master; make;\
+		fi;
+	cp smdp/android/libs/armeabi/libsmdp.so libs/armeabi/;
+	cp -r smdp/android/src/ ./
 
 $(GSTREAMER_SDK_ROOT) :
 	@echo "Downloading gstreamer android-sdk"

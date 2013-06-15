@@ -67,7 +67,6 @@ public class RemoteClient extends FragmentActivity
   private boolean playing = false;
   private DialogListener dialogListener;
   private boolean connected = false;
-  private RemoteClient main;
   private TcpClient client;
   private PositionQuery pQuery;
   private long trackLength = 0;
@@ -124,6 +123,11 @@ public class RemoteClient extends FragmentActivity
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
     private ConnectionDialog d;
+    private RemoteClient parent;
+
+    public DialogListener(RemoteClient parent) {
+      this.parent = parent;
+    }
 
     public void onCancel(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
@@ -133,7 +137,7 @@ public class RemoteClient extends FragmentActivity
     public void onDismiss(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
       if (d.shouldConnect() && !connected) {
-        connect(d.getHost(), d.getPort());
+        new Connector(parent).Connect(d.getHost(), d.getPort(), 500);
       }
     }
 
@@ -143,8 +147,7 @@ public class RemoteClient extends FragmentActivity
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    main = this;
-    dialogListener = new DialogListener();
+    dialogListener = new DialogListener(this);
     setContentView(R.layout.main);
     pQuery = new PositionQuery();
 
@@ -169,13 +172,8 @@ public class RemoteClient extends FragmentActivity
       binder.setPipelineStateListener(this);
     }
 
-    SharedPreferences serverParams = getPreferences(MODE_PRIVATE);
-    String serverUrl = serverParams.getString("url", null);
-    int serverPort = serverParams.getInt("port", 0);
-    if (serverUrl != null && serverPort != 0) {
-      connect(serverUrl, serverPort);
-    }
-
+    new Connector(this).start();
+    Log.d(LOGTAG, "Connector started");
   }
 
   @Override
@@ -333,36 +331,6 @@ public class RemoteClient extends FragmentActivity
     }
   }
 
-  public void connect(final String host, final int port) {
-    final RemoteClient context = this;
-    Log.d(LOGTAG, "Connecting to " + host + ":" + port);
-    Thread networkThread = new Thread(new Runnable() {
-      public void run() {
-        try {
-          client = new TcpClient(host, port, context);
-          context.runOnUiThread(new Runnable() {
-            public void run() {
-              setConnected(host, port);
-            }
-          });
-        } catch (final Exception ex) {
-          Log.d(LOGTAG, "Error on TcpClient() : " + ex.getMessage());
-          context.runOnUiThread(new Runnable() {
-            public void run() {
-              connectB.setText(R.string.unco);
-              Toast.makeText(context, ex.getMessage(), Toast.LENGTH_LONG).show();
-            }
-          });
-          if (client != null) {
-            client.stop();
-            client = null;
-          }
-        }
-      }
-    });
-    networkThread.start();
-  }
-
   public void showConnectDialog(View connectButton) {
     if (client != null) {
       Log.d(LOGTAG, "Disconnecting");
@@ -492,17 +460,23 @@ public class RemoteClient extends FragmentActivity
 
   }
 
-  private void setConnected(String host, int port) {
+  public void connectionFailure(String message) {
+    connectB.setText(R.string.unco);
+    Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+  }
+
+  public void setConnected(String host, int port, TcpClient newClient) {
     if (connected) {
       Log.d(LOGTAG, "Attempted to setConnected while already connected");
       return;
     }
 
-    if (client == null) {
+    if (newClient == null) {
       Log.d(LOGTAG, "Attempted to setConnected whithout any client");
       return;
     }
 
+    client = newClient;
     connected = true;
     connectB.setText("Connected to " + host + ":" + port);
     playPauseB.setClickable(true);
