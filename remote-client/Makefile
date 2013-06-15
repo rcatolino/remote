@@ -2,7 +2,7 @@ JAVA_SRC_PATH:=src/com/rcatolino/remoteclient
 ARCH:=armeabi
 APK:=bin/RemoteClient-debug.apk
 LIB_PATH:=libs/$(ARCH)
-NDK_OPT:="NDK_DEBUG=1"
+NDK_OPT:=
 libs=$(LIB_PATH)/libgstreamer_android.so $(LIB_PATH)/libmodgstreamer.so
 smdplib=$(LIB_PATH)/libsmdp.so
 
