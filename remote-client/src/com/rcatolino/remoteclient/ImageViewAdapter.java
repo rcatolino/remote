@@ -48,6 +48,11 @@ public class ImageViewAdapter extends FragmentPagerAdapter
       return rootView;
     }
 
+    @Override
+    public void onDestroyView() {
+      imageIV = null;
+    }
+
     public void setBackground(int id) {
       if (id == backgroundSrc) {
         return;

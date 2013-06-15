@@ -72,15 +72,6 @@ public class RemoteClient extends FragmentActivity
   private long trackLength = 0;
   private PlaybackBinder binder = null;
 
-  private Button connectB;
-  private ImageButton playPauseB;
-  private ProgressBar positionPB;
-  private TextView titleTV;
-  private TextView artistTV;
-  private TextView albumTV;
-  private TextView playbackTV;
-  private ToggleButton streamingB;
-  private ViewPager pager;
   private ImageViewAdapter adapter;
   private String[] profiles = null;
 
@@ -122,7 +113,6 @@ public class RemoteClient extends FragmentActivity
   }
 
   private class DialogListener implements OnCancelListener, OnDismissListener {
-    private ConnectionDialog d;
     private RemoteClient parent;
 
     public DialogListener(RemoteClient parent) {
@@ -130,12 +120,11 @@ public class RemoteClient extends FragmentActivity
     }
 
     public void onCancel(DialogInterface dialog) {
-      d = (ConnectionDialog) dialog;
       Log.d(LOGTAG, "Connection dialog canceled");
     }
 
     public void onDismiss(DialogInterface dialog) {
-      d = (ConnectionDialog) dialog;
+      ConnectionDialog d = (ConnectionDialog) dialog;
       if (d.shouldConnect() && !connected) {
         new Connector(parent).Connect(d.getHost(), d.getPort(), 500);
       }
@@ -151,15 +140,7 @@ public class RemoteClient extends FragmentActivity
     setContentView(R.layout.main);
     pQuery = new PositionQuery();
 
-    playPauseB = (ImageButton) findViewById(R.id.play_pause);
-    connectB = (Button) findViewById(R.id.connect_button);
-    titleTV = (TextView) findViewById(R.id.title_text);
-    artistTV = (TextView) findViewById(R.id.artist_text);
-    albumTV = (TextView) findViewById(R.id.album_text);
-    playbackTV = (TextView) findViewById(R.id.playback_text);
-    positionPB = (ProgressBar) findViewById(R.id.progress_bar);
-    streamingB = (ToggleButton) findViewById(R.id.streaming_button);
-    pager = (ViewPager) findViewById(R.id.pager);
+    ViewPager pager= (ViewPager) findViewById(R.id.pager);
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
     adapter.setOnPreviousNextListener(this);
@@ -266,6 +247,7 @@ public class RemoteClient extends FragmentActivity
     }
 
     binder.createStreamingPipeline(client.getPort()+1, playing);
+    ToggleButton streamingB = (ToggleButton) findViewById(R.id.streaming_button);
     if (!streamingB.isChecked()) {
       streamingB.setChecked(true);
     }
@@ -275,6 +257,7 @@ public class RemoteClient extends FragmentActivity
     Log.d(LOGTAG, "Service disconnected");
     binder.removePipelineStateListener();
     binder = null;
+    ToggleButton streamingB= (ToggleButton) findViewById(R.id.streaming_button);
     if (streamingB.isChecked()) {
       streamingB.setChecked(false);
     }
@@ -331,10 +314,18 @@ public class RemoteClient extends FragmentActivity
     }
   }
 
+  private Button getConnectB() {
+    return (Button) findViewById(R.id.connect_button);
+  }
+
+  private ImageButton getPlayPauseB() {
+    return (ImageButton) findViewById(R.id.play_pause);
+  }
+
   public void showConnectDialog(View connectButton) {
     if (client != null) {
       Log.d(LOGTAG, "Disconnecting");
-      connectB.setText(R.string.disco);
+      ((Button)connectButton).setText(R.string.disco);
       Log.d(LOGTAG, "disconnect set text");
       client.stop();
       Log.d(LOGTAG, "client stopped");
@@ -461,7 +452,7 @@ public class RemoteClient extends FragmentActivity
   }
 
   public void connectionFailure(String message) {
-    connectB.setText(R.string.unco);
+    getConnectB().setText(R.string.unco);
     Toast.makeText(this, message, Toast.LENGTH_LONG).show();
   }
 
@@ -478,8 +469,8 @@ public class RemoteClient extends FragmentActivity
 
     client = newClient;
     connected = true;
-    connectB.setText("Connected to " + host + ":" + port);
-    playPauseB.setClickable(true);
+    getConnectB().setText("Connected to " + host + ":" + port);
+    getPlayPauseB().setClickable(true);
     pQuery.start();
   }
 
@@ -496,14 +487,16 @@ public class RemoteClient extends FragmentActivity
     }
 
     connected = false;
-    connectB.setText(R.string.unco);
-    playPauseB.setClickable(false);
+    getConnectB().setText(R.string.unco);
+    getPlayPauseB().setClickable(false);
     pQuery.stop();
     client = null;
     clearData();
   }
 
   public void setPlaybackStatus(String status) {
+    TextView playbackTV = (TextView) findViewById(R.id.playback_text);
+    ImageButton playPauseB = getPlayPauseB();
     if (status.equals("Paused")) {
       playPauseB.setImageResource(R.drawable.remote_music_play);
       playbackTV.setText("Paused");
@@ -526,14 +519,17 @@ public class RemoteClient extends FragmentActivity
   }
 
   public void setTitle(String title) {
+    TextView titleTV = (TextView) findViewById(R.id.title_text);
     titleTV.setText(title);
   }
 
   public void setArtist(String artist) {
+    TextView artistTV = (TextView) findViewById(R.id.artist_text);
     artistTV.setText(artist);
   }
 
   public void setAlbum(String album) {
+    TextView albumTV = (TextView) findViewById(R.id.album_text);
     albumTV.setText(album);
   }
 
@@ -563,6 +559,7 @@ public class RemoteClient extends FragmentActivity
     }
 
     int progress = (int)((100*position)/trackLength);
+    ProgressBar positionPB = (ProgressBar) findViewById(R.id.progress_bar);
     positionPB.setProgress(progress);
   }
 
