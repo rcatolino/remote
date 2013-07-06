@@ -1,6 +1,7 @@
 #include <gio/gio.h>
 #include <string.h>
 
+#include "dbusif.h"
 #include "tcpserver.h"
 #include "utils.h"
 
@@ -12,12 +13,19 @@ GVariant * updateProperty(const struct proxyParams * pp,
   GVariant * ret;
   GVariant * property;
   error = NULL;
+  if (!pp->proxy) {
+    debug("updateProperty : Cannot update property %s since dbus proxy for %s is inexistant\n",
+          prop_name,
+          pp->name);
+    return NULL;
+  }
+
   ret = g_dbus_proxy_call_sync(pp->proxy,
                                "org.freedesktop.DBus.Properties.Get",
                                g_variant_new("(ss)", pp->interface, prop_name),
                                G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
   if (ret == NULL) {
-    debug("Error getting property %s : %s\n", prop_name, error->message);
+    debug("updateProperty : Error getting property %s : %s\n", prop_name, error->message);
     return NULL;
   }
 
@@ -73,31 +81,37 @@ void printProxy(struct proxyParams * pp)
   g_free (name_owner);
 }
 
-static void onSignal (GDBusProxy *proxy,
-                       gchar      *sender_name,
-                       gchar      *signal_name,
-                       GVariant   *parameters,
-                       gpointer    pp)
+static void onSignal(GDBusProxy *proxy,
+                     gchar      *sender_name,
+                     gchar      *signal_name,
+                     GVariant   *parameters,
+                     gpointer    pp)
 {
   gchar *parameters_str;
 
-  parameters_str = g_variant_print (parameters, TRUE);
-  g_print (" *** Received Signal: %s: %s\n",
-           signal_name,
-           parameters_str);
-  g_free (parameters_str);
+  parameters_str = g_variant_print(parameters, TRUE);
+  debug(" *** Received Signal: %s: %s\n",
+        signal_name,
+        parameters_str);
+  g_free(parameters_str);
 }
 
-static void onNameOwnerNotify (GObject    *object,
-                                  GParamSpec *pspec,
-                                  struct proxyParams * pp)
+static void onNameOwnerNotify(GObject    *object,
+                              GParamSpec *pspec,
+                              struct proxyParams * pp)
 {
   char * name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
+  debug("onNameOwnerNotify : change!%d\n", pp->active);
   if (name_owner) {
     pp->active = 1;
-  } else {
+  } else if (pp->active == 1) {
     pp->active = 0;
+    closeConnection(pp);
+    if (createConnection(pp, NULL, NULL) == -1) {
+      debug("dbusif.c : Could not re-create dbus proxy connection.\n");
+    }
   }
+
   printProxy((struct proxyParams *)pp);
 }
 
@@ -106,6 +120,7 @@ void closeConnection(struct proxyParams * pp) {
     return;
   }
 
+  debug("closeConnection : closing %s\n", pp->name);
   g_object_unref(pp->proxy);
   pp->proxy = NULL;
 }
@@ -116,6 +131,7 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
   GError *error;
   GDBusProxyFlags flags;
   GDBusProxy *proxy;
+  char *name_owner;
 
   proxy = NULL;
   error = NULL;
@@ -155,8 +171,16 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
                      G_CALLBACK(onNameOwnerNotify),
                      pp);
   }
-  printProxy(pp);
 
+  name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
+  if (name_owner) {
+    pp->active = 1;
+  } else {
+    pp->active = 0;
+  }
+
+  g_free(name_owner);
+  printProxy(pp);
   return 0;
 }
 
@@ -167,12 +191,12 @@ void call(struct callParams * cp) {
   debug("proxy adress : %p, object type : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy));
   error = NULL;
   ret = g_dbus_proxy_call_sync(G_DBUS_PROXY(cp->proxy->proxy),
-                    cp->method,
-                    NULL,
-                    G_DBUS_CALL_FLAGS_NONE,
-                    -1,
-                    NULL,
-                    &error);
+                               cp->method,
+                               NULL,
+                               G_DBUS_CALL_FLAGS_NONE,
+                               -1,
+                               NULL,
+                               &error);
   if (ret == NULL) {
     debug("Error calling method : %s\n", error->message);
   } else {

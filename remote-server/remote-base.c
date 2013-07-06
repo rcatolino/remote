@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 
   debug("\nCommand-line options parsed!\nParsing config file...\n");
   // Configuration file parsing/loading/treatment.
-  // (This create all the dbus interface)
+  // (This creates all the dbus interface)
   call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
                                      (GDestroyNotify)free, (GDestroyNotify)free);
   if(loadConfig(opt_config_file) == -1) {
@@ -143,8 +143,8 @@ int main(int argc, char *argv[]) {
     svc_broadcast_thread = g_thread_try_new("loop", serviceBroadcast, &port, &error);
   }
   if (!svc_broadcast_thread) {
-    debug("Error creating event loop thread : %s\n", error->message);
-    goto error;
+    debug("Error creating service broadcast thread : %s\n", error->message);
+    g_error_free(error);
   }
 
   debug("\nConnection created!\n");

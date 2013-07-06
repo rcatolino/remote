@@ -256,25 +256,30 @@ static void updateStatus(struct mprisInstance * instance) {
   if (instance->title) g_free(instance->title);
   if (!g_variant_lookup(value, "xesam:title", "s", &instance->title)) {
     debug("No metadata on title!\n");
+    instance->title = NULL;
   }
 
   if (instance->artist) g_free(instance->artist);
   array = g_variant_lookup_value(value, "xesam:artist", G_VARIANT_TYPE_STRING_ARRAY);
   if (!array) {
     debug("No metadata on artist!\n");
+    instance->artist = NULL;
   } else {
     g_variant_get_child(array, 0, "s", &instance->artist);
   }
 
   if (instance->album) g_free(instance->album);
   if (!g_variant_lookup(value, "xesam:album", "s", &instance->album)) {
+    instance->album = NULL;
     debug("No metadata on album!\n");
   }
   if (!g_variant_lookup(value, "mpris:length", "i", &instance->length)) {
+    instance->length = 0;
     debug("No metadata on length!\n");
   }
   if (instance->artUrl) g_free(instance->artUrl);
   if (!g_variant_lookup(value, "mpris:artUrl", "s", &instance->artUrl)) {
+    instance->artUrl = NULL;
     debug("No metadata on art uri!\n");
   }
 
@@ -282,24 +287,70 @@ static void updateStatus(struct mprisInstance * instance) {
   debug("Properties updated\n");
 }
 
+static void onPropertiesChanged(GDBusProxy          *proxy,
+                                GVariant            *changed_properties,
+                                const gchar* const  *invalidated_properties,
+                                gpointer             pp)
+{
+  if (g_variant_n_children(changed_properties) > 0) {
+    GVariantIter *iter;
+    gchar *key;
+    GVariant *value;
+
+    debug(" *** Properties Changed:\n");
+    g_variant_get(changed_properties, "a{sv}", &iter);
+    while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
+      gchar *value_str;
+      value_str = g_variant_print(value, TRUE);
+      g_print("      %s -> %s\n", key, value_str);
+      g_free(value_str);
+      if (strncmp(key, "Metadata",8) == 0) {
+        trackChanged(value);
+      } else if (strcmp(key, "PlaybackStatus") == 0) {
+        playbackChanged(g_variant_dup_string(value, NULL));
+      } else if (strcmp(key, "LoopStatus") == 0) {
+        loopChanged(g_variant_dup_string(value, NULL));
+      } else if (strcmp(key, "Shuffle") == 0) {
+        shuffleChanged(g_variant_get_boolean(value));
+      } else if (strcmp(key, "Position") == 0) {
+        positionChanged(g_variant_get_int64(value));
+      }
+    }
+
+    g_variant_iter_free (iter);
+  }
+}
+
 static void on_name_owner_changed(GObject    *object,
-                               GParamSpec *pspec,
-                               struct proxyParams * pp)
+                                  GParamSpec *pspec,
+                                  struct proxyParams * pp)
 {
   char * name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
+  debug("on_name_owner_changed : change %d!\n", pp->active);
+  printProxy(pp);
   if (name_owner && pp->active == 0) {
     updateStatus(mpris_data);
     pp->active = 1;
   } else if (!name_owner && pp->active == 1) {
     updateStatus(mpris_data);
     pp->active = 0;
+    // Free the connection used, try to get a new one :
+    closeConnection(pp);
+    if (createConnection(pp, G_CALLBACK(onPropertiesChanged),
+                         G_CALLBACK(on_name_owner_changed)) == -1) {
+      debug("mpris.c : Could not re-create mpris proxy.\n");
+    }
   }
-  printProxy(pp);
+  printMprisData();
 }
 
 void updatePositionProperty() {
   const GVariantType * type;
   int64_t pos = 0;
+  if (!mpris_data || !mpris_data->player) {
+    return;
+  }
+
   GVariant * position = updateProperty(mpris_data->player, "Position");
   if (position == NULL) {
     return;
@@ -335,40 +386,6 @@ void updateTrackProperty() {
 
   trackChanged(metadata);
   g_variant_unref(metadata);
-}
-
-static void onPropertiesChanged(GDBusProxy          *proxy,
-                                GVariant            *changed_properties,
-                                const gchar* const  *invalidated_properties,
-                                gpointer             pp)
-{
-  if (g_variant_n_children(changed_properties) > 0) {
-    GVariantIter *iter;
-    gchar *key;
-    GVariant *value;
-
-    debug(" *** Properties Changed:\n");
-    g_variant_get(changed_properties, "a{sv}", &iter);
-    while (g_variant_iter_loop (iter, "{&sv}", &key, &value)) {
-      gchar *value_str;
-      value_str = g_variant_print(value, TRUE);
-      g_print("      %s -> %s\n", key, value_str);
-      g_free(value_str);
-      if (strncmp(key, "Metadata",8) == 0) {
-        trackChanged(value);
-      } else if (strcmp(key, "PlaybackStatus") == 0) {
-        playbackChanged(g_variant_dup_string(value, NULL));
-      } else if (strcmp(key, "LoopStatus") == 0) {
-        loopChanged(g_variant_dup_string(value, NULL));
-      } else if (strcmp(key, "Shuffle") == 0) {
-        shuffleChanged(g_variant_get_boolean(value));
-      } else if (strcmp(key, "Position") == 0) {
-        positionChanged(g_variant_get_int64(value));
-      }
-    }
-
-    g_variant_iter_free (iter);
-  }
 }
 
 int createMprisInstance(struct proxyParams * pp) {
@@ -422,6 +439,7 @@ void deleteMprisInstance() {
     return;
   }
 
+  debug("Deleting mpris instance for %s\n", mpris_data->player->name);
   closeConnection(mpris_data->player);
   free(mpris_data->player);
   g_free(mpris_data->title);

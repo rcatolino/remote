@@ -6,7 +6,8 @@ Remote should mainly allow to control media player.
 
 ## Build
 ### Server
-To build the server, you will need libjansson-dev, glib2.0 and gstreamer-1.0. Once the
+To build the server, you will need libjansson-dev, glib2.0 and optionally gstreamer-1.0 (this last one
+is if you want to use the streaming to phone option, which seems pretty useless anyway). Once the
 dependencies satisfied, go into remote-server and `make setup` (to pull lib smdp) then `make`.
 You can enable/disable build options in the makefile.
 
@@ -31,3 +32,5 @@ into appropriate dbus calls (see [config-spec](https://github.com/rcatolino/remo
 You can associate any command to any dbus call that doesn't ask for a input
 parameters. You can use a tool such as d-feet to find the calls you want to use.
 
+The default config file allows to control clementine via the 'music' profile, vlc via
+the 'video' profile, and in a very basic way, xbmc via the 'xbmc' profile.
