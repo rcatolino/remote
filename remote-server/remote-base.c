@@ -79,6 +79,7 @@ int main(int argc, char *argv[]) {
 
   // Glib initialisation.
   // g_type_init();
+  setlinebuf(stdout);
   loop = g_main_loop_new(NULL, FALSE);
 
   // Command-line options parsing.
