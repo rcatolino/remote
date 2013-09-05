@@ -74,6 +74,8 @@ public class Connector extends Thread {
       final int port = Integer.parseInt(smdp.getServiceField(3));
       RawConnect(url, port, 300, parent);
       return;
+    } else {
+      Log.d(LOGTAG, "Timed out waiting for an answer");
     }
   }
 
