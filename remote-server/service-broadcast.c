@@ -71,22 +71,16 @@ int addr_change(int nl_sock, struct sockaddr_nl * nladdr) {
       err = (struct nlmsgerr *) NLMSG_DATA(nlhdr);
       debug("Netlink error : %s\n", strerror(err->error));
       continue;
-    }
-
-    if (nlhdr->nlmsg_type == NLMSG_NOOP) {
+    } else if (nlhdr->nlmsg_type == NLMSG_NOOP) {
       debug("Netlink noop\n");
       continue;
-    }
-
-    if (nlhdr->nlmsg_type == RTM_NEWADDR) {
+    } else if (nlhdr->nlmsg_type == RTM_NEWADDR) {
       debug("RTM_NEWADDR\n");
       ret = 1;
-    }
-
-    if (nlhdr->nlmsg_type == RTM_DELADDR) {
+    } else if (nlhdr->nlmsg_type == RTM_DELADDR) {
       debug("RTM_DELADDR\n");
       ret = 1;
-    }
+    } else if (ret == 0) debug("nlmsg_type : %d\n", nlhdr->nlmsg_type);
   }
 
   return ret;
