@@ -12,10 +12,13 @@ INCLUDES:=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
 
 EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o service-broadcast.o
 LIBS:=libsmdp.a -ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
+HOST:=$(shell uname)-$(shell uname -m)
+SMDP:=../smdp/src/$(HOST)/libsmdp.a
+L_SMDP:=./libsmdp.a
 
 .PHONY: setup smdp
 # Build options :
-AUDIO_FEEDBACK=1
+#AUDIO_FEEDBACK=1
 #AUDIO_CODEC_FLAC=1 #flac and vorbis supported. Vorbis is the default
 
 # Additional stuff depending on the options :
@@ -26,7 +29,7 @@ ifdef AUDIO_FEEDBACK
 	EOBJ:=$(EOBJ) streaming-server.o
 endif
 
-$(EXE): $(EOBJ)
+$(EXE): setup $(EOBJ)
 	@echo building $@
 	$(EDL) -o $(EXE) $(EDLFLAGS) $(EOBJ) $(LIBS)
 	@echo done
@@ -43,14 +46,14 @@ clean:
 	-@rm -rf *~
 	@echo cleaned.
 
-setup : smdp
+setup : $(L_SMDP)
 
-smdp :
-	@echo downloading smdp library
-	if git clone http://github.com/rcatolino/smdp.git;\
-		then cd smdp; make;\
-		else cd smdp; git pull origin master; make;\
-		fi;
-	cp smdp/src/libsmdp.a ./;
-	cp smdp/src/smdp.h ./;
+$(L_SMDP) : $(SMDP)
+	@echo installing $@
+	cp $(SMDP) ./;
+	cp ../smdp/src/smdp.h ./;
+
+$(SMDP) :
+	@echo building $@
+	cd ../smdp; make > /dev/null;
 

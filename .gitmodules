@@ -1,0 +1,3 @@
+[submodule "smdp"]
+	path = smdp
+	url = https://github.com/rcatolino/smdp.git

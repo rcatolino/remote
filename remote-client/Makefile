@@ -6,8 +6,8 @@ NDK_OPT:=
 libs=$(LIB_PATH)/libgstreamer_android.so $(LIB_PATH)/libmodgstreamer.so
 smdplib=$(LIB_PATH)/libsmdp.so
 
+SMDP:=../smdp/android/libs/armeabi/libsmdp.so
 GSTREAMER_TARGET:=release# Can be debug or release
-
 GSTREAMER_SDK_ROOT:=gstreamer-sdk-$(GSTREAMER_TARGET)
 
 .PHONY: all android-ndk clean clean-setup install jnilib setup smdp
@@ -53,29 +53,24 @@ http://developer.android.com/tools/sdk/ndk/index.html";\
 		exit 1;\
 		fi;
 
-smdp :
-	@echo downloading smdp library
-	if git clone http://github.com/rcatolino/smdp.git;\
-		then cd smdp; make;\
-		else cd smdp; git pull origin master; make;\
-		fi;
-	cp smdp/android/libs/armeabi/libsmdp.so libs/armeabi/;
-	cp -r smdp/android/src/ ./
+smdp : $(smdplib)
 
+$(smdplib) : $(SMDP) $(LIB_PATH)
+	@echo installing smdp library
+	cp $(SMDP) $(LIB_PATH)/;
+	cp -r ../smdp/android/src/ ./
 
-$(smdplib) :
-	@echo downloading smdp library
-	if git clone http://github.com/rcatolino/smdp.git;\
-		then cd smdp; make;\
-		else cd smdp; git pull origin master; make;\
-		fi;
-	cp smdp/android/libs/armeabi/libsmdp.so libs/armeabi/;
-	cp -r smdp/android/src/ ./
+$(LIB_PATH) :
+	mkdir $(LIB_PATH)
+
+$(SMDP) :
+	@echo building smdp library
+	cd ../smdp && make > /dev/null
 
 $(GSTREAMER_SDK_ROOT) :
 	@echo "Downloading gstreamer android-sdk"
 	mkdir $(GSTREAMER_SDK_ROOT)
-	wget "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-$(GSTREAMER_TARGET)-2012.11.tar.bz2"\
+	wget --continue "http://cdn.gstreamer.com/android/arm/gstreamer-sdk-android-arm-$(GSTREAMER_TARGET)-2012.11.tar.bz2"\
 		-O $(GSTREAMER_SDK_ROOT).tar.bz2
 	tar --directory=$(GSTREAMER_SDK_ROOT) -xjf $(GSTREAMER_SDK_ROOT).tar.bz2
 	mv $(GSTREAMER_SDK_ROOT).tar.bz2 $(GSTREAMER_SDK_ROOT)
@@ -85,4 +80,5 @@ $(GSTREAMER_SDK_ROOT) :
 clean-setup :
 	-rm -rf $(GSTREAMER_SDK_ROOT)
 	-rm -f $(GSTREAMER_SDK_ROOT).tar.bz2
-	-rm -rf smdp
+	-rm -rf src/com/rcatolino/smdp
+	-rm -f $(smdplib)

@@ -1,6 +1,8 @@
 *~
 *.log
+*.a
 *.o
+*.so
 *.out
 *.swp
 .directory
@@ -15,3 +17,9 @@ libs/
 local.properties
 obj/
 tags
+build.xml
+gstreamer*
+*.txt
+smdp/*
+smdp.*
+project.properties
