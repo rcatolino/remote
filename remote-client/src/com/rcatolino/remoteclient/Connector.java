@@ -11,8 +11,8 @@ public class Connector extends Thread {
   // This class provides non blocking ways to connect to the server.
   // The connect method can be invoked directly (eg when the connect
   // dialog is spawned by the user), or it can be called after the
-  // coordiante of the server has been found either using the last
-  // working coordinate, or the smdp service.
+  // address of the server has been found either using the last
+  // working adress, or the smdp service.
   private static final String LOGTAG = "RemoteClient/Connector";
   private boolean connected;
   private Object connected_sync;
@@ -57,11 +57,17 @@ public class Connector extends Thread {
       }
     }
 
+    // The last known working address isn't working anymore.
     // Try to get the coordinates from the smdp service.
+    if (smdp == null) {
+      Log.d(LOGTAG, "Smdp client unavailable, skipping broadcast query method");
+      return;
+    }
+
     Log.d(LOGTAG, "Trying smdp service");
     smdp.sendQuery();
     Log.d(LOGTAG, "Sent service broadcast");
-    if (smdp != null && smdp.waitForAnswer(3000)) {
+    if (smdp.waitForAnswer(3000)) {
       Log.d(LOGTAG, "Received service broadcast : " + smdp.getServiceField(2)
             + ":" + smdp.getServiceField(3));
       final String url = smdp.getServiceField(2);
@@ -69,8 +75,6 @@ public class Connector extends Thread {
       RawConnect(url, port, 300, parent);
       return;
     }
-
-
   }
 
   private boolean RawConnect(final String host, final int port,

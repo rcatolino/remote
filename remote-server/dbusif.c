@@ -146,7 +146,7 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
                                          NULL, /* GCancellable */
                                          &error);
   if (proxy == NULL) {
-    g_printerr ("Error creating proxy: %s\n", error->message);
+    g_printerr ("dbugif.c : Error creating proxy: %s\n", error->message);
     g_error_free (error);
     return -1;
   }
