@@ -137,7 +137,7 @@ public class RemoteClient extends FragmentActivity
     public void onDismiss(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
       if (d.shouldConnect() && !connected) {
-        new Connector(parent).Connect(d.getHost(), d.getPort(), 500);
+        new Connector(parent).connect(d.getHost(), d.getPort(), 500);
       }
     }
 
@@ -172,7 +172,7 @@ public class RemoteClient extends FragmentActivity
       binder.setPipelineStateListener(this);
     }
 
-    new Connector(this).start();
+    new Connector(this).connect();
     Log.d(LOGTAG, "Connector started");
   }
 
