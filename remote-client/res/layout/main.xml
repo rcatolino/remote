@@ -62,13 +62,6 @@
     android:layout_height="75dp"
     android:gravity="center">
 
-    <ToggleButton android:id="@+id/streaming_button"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:textOn="@string/streaming_on"
-      android:textOff="@string/streaming_off"
-      android:onClick="toggleStreaming"/>
-
     <ImageButton android:id="@+id/previous"
       android:src="@drawable/remote_music_previous"
       android:background="@null"

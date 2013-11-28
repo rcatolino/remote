@@ -11,14 +11,11 @@ bin/
 cscope*
 gen/
 gst-build/
-gstreamer/
-gstreamer-sdk/
 libs/
 local.properties
 obj/
 tags
 build.xml
-gstreamer*
 *.txt
 smdp/*
 smdp.*
