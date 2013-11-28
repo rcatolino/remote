@@ -196,15 +196,10 @@ public class Connector extends Thread {
   private class networkStatusReceiver extends BroadcastReceiver {
 
     public void onReceive(Context context, Intent intent) {
-      try {
-        if (isWifiConnected()) {
-          Log.d(LOGTAG, "Wifi connected");
-          networkStateQueue.put(new Boolean(true));
-          Log.d(LOGTAG, "Connector thread notified");
-        }
-      } catch (InterruptedException e) {
-        Log.d(LOGTAG, "Interrupted while sending network state change :" + e.getMessage());
-      } catch (NullPointerException e) {
+      if (isWifiConnected()) {
+        Log.d(LOGTAG, "Wifi connected");
+        networkStateQueue.offer(new Boolean(true));
+        Log.d(LOGTAG, "Connector thread notified");
       }
     }
   }
