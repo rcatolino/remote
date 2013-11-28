@@ -19,6 +19,7 @@ import android.view.MenuItem;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -144,6 +145,8 @@ public class RemoteClient extends FragmentActivity
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
     adapter.setOnPreviousNextListener(this);
+
+    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
   }
 
   @Override

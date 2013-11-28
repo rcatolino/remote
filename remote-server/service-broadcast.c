@@ -15,6 +15,7 @@
 #include "smdp.h"
 #include "utils.h"
 
+#define DEBUG 1
 #define ID "remote-server"
 #define PROTO "tcp"
 #define PORT_SZ 6
