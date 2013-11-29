@@ -3,17 +3,17 @@
 
 #include "utils.h"
 
-GVariant * updateProperty(const struct proxyParams * pp,
-                          const char * prop_name);
+GVariant *updateProperty(const struct proxyParams *pp,
+                          const char *prop_name);
 
-int createConnection(struct proxyParams * pp, GCallback on_property_changed,
+int createConnection(struct proxyParams *pp, GCallback on_property_changed,
                      GCallback on_name_owner_changed);
 
-void closeConnection(struct proxyParams * pp);
+void closeConnection(struct proxyParams *pp);
 
-void call(struct callParams * cp);
+void call(struct callParams *cp, char *argument_buff);
 
 void updateClientSocket(int socketd);
 
-void printProxy(struct proxyParams * pp);
+void printProxy(struct proxyParams *pp);
 #endif

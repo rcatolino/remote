@@ -101,14 +101,26 @@ int initialize_options(int argc, char *argv[]) {
   return 0;
 }
 
+char *getargument(char *buff) {
+  char *sep = strchr(buff, ' ');
+  if (sep == NULL) {
+    return NULL;
+  }
+
+  sep[0] = '\0';
+  return sep+1;
+}
+
 int handle_command(int client_sock, char *buff, GHashTable *call_table, struct proxyParams *pp) {
   struct callParams *cp = NULL;
+  char *argument = NULL;
 
+  argument = getargument(buff);
   cp = g_hash_table_lookup(call_table, buff);
   if (cp) {
     debug("Found method %s() in %s associated with command %s. Calling...\n",
           cp->method, cp->proxy->name, buff);
-    call(cp);
+    call(cp, argument);
   } else if (strlen(buff) >= POSITION_REQ_SZ &&
              strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
     updatePositionProperty();

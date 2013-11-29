@@ -184,7 +184,7 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
   return 0;
 }
 
-void call(struct callParams * cp) {
+void call(struct callParams *cp, char *argument_buff) {
 
   GError * error;
   GVariant * ret;
