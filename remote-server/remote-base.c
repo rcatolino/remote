@@ -31,12 +31,12 @@ void * processEvents(void * arg) {
   return NULL;
 }
 
-void freeProfileRes(GHashTable * call_table, struct proxyParams * pp) {
-  struct proxyParams * tmp;
+void freeProfileRes(GHashTable *call_table, struct proxyParams *pp) {
+  struct proxyParams *tmp;
   g_hash_table_remove_all(call_table);
   tmp = pp;
   while (tmp) {
-    struct proxyParams * tmppp = tmp->prev;
+    struct proxyParams *tmppp = tmp->prev;
     debug("Closing proxy for %s\n", tmp->name);
     closeConnection(tmp);
     tmp = tmppp;
@@ -44,9 +44,9 @@ void freeProfileRes(GHashTable * call_table, struct proxyParams * pp) {
   deleteMprisInstance();
 }
 
-int createProfile(const char * profile, GHashTable * call_table, struct proxyParams ** pp) {
-  struct proxyParams * tmp;
-  const char * profile_name = chooseProfile(profile);
+int createProfile(const char *profile, GHashTable *call_table, struct proxyParams **pp) {
+  struct proxyParams *tmp;
+  const char *profile_name = chooseProfile(profile);
 
   if(profile_name == NULL || parseConfig(pp, call_table) == -1 || *pp == NULL) {
     // Bad config file, proxy/method specifications error.
@@ -101,16 +101,78 @@ int initialize_options(int argc, char *argv[]) {
   return 0;
 }
 
+int handle_command(int client_sock, char *buff, GHashTable *call_table, struct proxyParams *pp) {
+  struct callParams *cp = NULL;
+
+  cp = g_hash_table_lookup(call_table, buff);
+  if (cp) {
+    debug("Found method %s() in %s associated with command %s. Calling...\n",
+          cp->method, cp->proxy->name, buff);
+    call(cp);
+  } else if (strlen(buff) >= POSITION_REQ_SZ &&
+             strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
+    updatePositionProperty();
+  } else if (strlen(buff) > PROFILE_HEAD_SZ &&
+             strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
+    freeProfileRes(call_table, pp);
+    createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
+    updateMprisClientSocket(client_sock);
+    sendCachedData();
+  }
+#ifdef AUDIO_FEEDBACK
+  else if (strlen(buff) >= STREAMING_ON_REQ_SZ &&
+             strncmp(buff, STREAMING_ON_REQ, STREAMING_ON_REQ_SZ) == 0) {
+    startStreaming(loop, getClientAddress());
+  } else if (strlen(buff) >= STREAMING_OFF_REQ_SZ &&
+             strncmp(buff, STREAMING_OFF_REQ, STREAMING_OFF_REQ_SZ) == 0) {
+    pauseStreaming();
+  } else if (strlen(buff) >= STREAMING_STOP_SZ &&
+             strncmp(buff, STREAMING_STOP, STREAMING_STOP_SZ) == 0) {
+    deleteStreamingServer();
+  }
+#endif
+
+  return 0;
+}
+
+int handle_client(int client_sock, GHashTable *call_table, struct proxyParams *pp) {
+  char buff[MAX_CMD_SIZE+1];
+  char *profiles;
+  int connected = 1;
+
+  updateClientSocket(client_sock);
+  updateMprisClientSocket(client_sock);
+  profiles = getProfiles();
+  transmitMsg(client_sock, profiles, strlen(profiles),
+              PROFILES_HEAD, PROFILES_HEAD_SZ);
+  free(profiles);
+  sendCachedData();
+  while (connected) {
+    int ret = receive(client_sock, buff, MAX_CMD_SIZE);
+    if (ret == -1) {
+      closeClient(client_sock);
+      connected = 0;
+      updateClientSocket(0);
+      updateMprisClientSocket(0);
+      continue;
+    }
+
+    buff[ret]='\0';
+    handle_command(client_sock, buff, call_table, pp);
+  }
+
+  return 0;
+}
+
 int main(int argc, char *argv[]) {
   int socketd;
-  char buff[MAX_CMD_SIZE+1];
-  struct proxyParams * pp;
+  struct proxyParams *pp;
 
-  GHashTable * call_table;
-  GError * error;
-  GMainLoop * loop;
-  GThread * callback_thread;
-  GThread * svc_broadcast_thread;
+  GHashTable *call_table;
+  GError *error = NULL;
+  GMainLoop *loop;
+  GThread *callback_thread;
+  GThread *svc_broadcast_thread;
 
   // Glib initialisation.
   // g_type_init();
@@ -120,7 +182,10 @@ int main(int argc, char *argv[]) {
   }
 
   debug("\nCommand-line options parsed!\nParsing config file...\n");
+  // Glib event-loop creation. (For the dbus callbacks) (We need another thread
+  // because we're not using glib for the networking.)
   loop = g_main_loop_new(NULL, FALSE);
+
   // Configuration file parsing/loading/treatment.
   // (This creates all the dbus interface)
   call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
@@ -134,16 +199,13 @@ int main(int argc, char *argv[]) {
     goto out;
   }
 
-  // Glib event-loop creation. (For the dbus callbacks) (We need another thread
-  // because we're not using glib for the networking.)
-  error = NULL;
   callback_thread = g_thread_try_new("loop", processEvents, loop, &error);
   if (!callback_thread) {
     debug("Error creating event loop thread : %s\n", error->message);
     goto error;
   }
 
-    // Start tcp server.
+  // Start tcp server.
   debug("\nProxies created !\nCreating network connection...\n");
   socketd = initServer(opt_port);
   if (socketd == -1) {
@@ -161,62 +223,14 @@ int main(int argc, char *argv[]) {
 
   debug("\nConnection created!\n");
   while (1) {
-    char * profiles;
-    struct callParams * cp = NULL;
     int clients = waitClient(socketd);
     if (clients == -1) {
       // We can't connect to a client.
-      return -1;
+      goto out;
     }
 
-    int connected = 1;
     debug("\nconnected to socket : %d\n", socketd);
-    updateClientSocket(clients);
-    updateMprisClientSocket(clients);
-    profiles = getProfiles();
-    transmitMsg(clients, profiles, strlen(profiles),
-                PROFILES_HEAD, PROFILES_HEAD_SZ);
-    free(profiles);
-    sendCachedData();
-    while (connected) {
-      int ret=receive(clients, buff, MAX_CMD_SIZE);
-      if (ret == -1) {
-        closeClient(clients);
-        connected = 0;
-        updateClientSocket(0);
-        updateMprisClientSocket(0);
-        continue;
-      }
-
-      buff[ret]='\0';
-      cp = g_hash_table_lookup(call_table, buff);
-      if (cp) {
-        debug("Found method %s() in %s associated with command %s. Calling...\n",
-              cp->method, cp->proxy->name, buff);
-        call(cp);
-      } else if (strlen(buff) >= POSITION_REQ_SZ &&
-                 strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
-        updatePositionProperty();
-      } else if (strlen(buff) > PROFILE_HEAD_SZ &&
-                 strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
-        freeProfileRes(call_table, pp);
-        createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
-        updateMprisClientSocket(clients);
-        sendCachedData();
-      }
-#ifdef AUDIO_FEEDBACK
-      else if (strlen(buff) >= STREAMING_ON_REQ_SZ &&
-                 strncmp(buff, STREAMING_ON_REQ, STREAMING_ON_REQ_SZ) == 0) {
-        startStreaming(loop, getClientAddress());
-      } else if (strlen(buff) >= STREAMING_OFF_REQ_SZ &&
-                 strncmp(buff, STREAMING_OFF_REQ, STREAMING_OFF_REQ_SZ) == 0) {
-        pauseStreaming();
-      } else if (strlen(buff) >= STREAMING_STOP_SZ &&
-                 strncmp(buff, STREAMING_STOP, STREAMING_STOP_SZ) == 0) {
-        deleteStreamingServer();
-      }
-#endif
-    }
+    handle_client(clients, call_table, pp);
   }
 
 error:
@@ -226,6 +240,7 @@ out:
 #ifdef AUDIO_FEEDBACK
   deleteStreamingServer();
 #endif
-  g_main_loop_unref (loop);
+  g_main_loop_unref(loop);
+  g_hash_table_unref(call_table);
   return 0;
 }
