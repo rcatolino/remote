@@ -66,7 +66,8 @@ static int fillCallTable(GHashTable * call_table, const struct proxyParams * pro
   char * command_buff;
   const char * command_name;
   void * iter;
-  json_t * method_name;
+  json_t * method_name = NULL;
+  json_t * method_arg = NULL;
   struct callParams * tmp;
 
   if (!json_is_object(cmd_obj)) {
@@ -80,14 +81,51 @@ static int fillCallTable(GHashTable * call_table, const struct proxyParams * pro
   }
 
   while (iter) {
+    enum argument_type arg_type = NO_TYPE;
     command_name = json_object_iter_key(iter);
     method_name = json_object_iter_value(iter);
-    if (method_name == NULL || !json_is_string(method_name) ||
-        strlen(command_name) >= MAX_CMD_SIZE) {
-      debug("Incorrect command/method association, value should be a string \
-and key should be shorter than %d char, for %s\n", MAX_CMD_SIZE, command_name);
+    if (method_name == NULL || strlen(command_name) >= MAX_CMD_SIZE) {
+      debug("Incorrect command/method association. A method needs to be associated to the command, and key should be shorter than %d char, for %s\n",
+            MAX_CMD_SIZE, command_name);
       iter = json_object_iter_next(cmd_obj, iter);
       continue;
+    }
+
+    if (json_is_array(method_name)) {
+      // The name of the method is actually the first element in the array. The second is the
+      // argument type.
+      switch (json_array_size(method_name)) {
+        case 0:
+          // Empty array, error.
+          debug("Incorrect method specification for command %s.\n", command_name);
+          continue;
+        case 1:
+          method_name = json_array_get(method_name, 0);
+          break;
+        default:
+          method_arg = json_array_get(method_name, 1);
+          method_name = json_array_get(method_name, 0);
+      }
+    }
+
+    if (!json_is_string(method_name)) {
+      debug("Invalid method name specification for command %s.\n", command_name);
+      continue;
+    }
+
+    if (method_arg != NULL) {
+      // Case where the method takes an argument.
+      if (!json_is_string(method_arg)) {
+        debug("Invalid argument type specification for command %s.\n", command_name);
+        continue;
+      }
+
+      if (strcasecmp(json_string_value(method_arg), "int64") == 0) {
+        arg_type = I64;
+      } else {
+        debug("Unsuported argument type %s.\n", json_string_value(method_arg));
+        continue;
+      }
     }
 
     command_buff = malloc(strlen(command_name)+1);
@@ -95,6 +133,7 @@ and key should be shorter than %d char, for %s\n", MAX_CMD_SIZE, command_name);
     tmp = malloc(sizeof(struct callParams));
     tmp->proxy = proxy;
     tmp->method = json_string_value(method_name);
+    tmp->arg_type = arg_type;
     g_hash_table_insert(call_table, command_buff, tmp);
     debug("Call params for %s inserted into call table\n", command_name);
     iter = json_object_iter_next(cmd_obj, iter);

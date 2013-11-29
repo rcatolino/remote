@@ -12,7 +12,8 @@
           "PAUSE" : "Pause",
           "STOP" : "Stop",
           "PREV" : "Previous",
-          "NEXT" : "Next"
+          "NEXT" : "Next",
+          "SEEK" : [ "Seek", "int64" ]
         },
         "feedback" : "mpris"
       },
