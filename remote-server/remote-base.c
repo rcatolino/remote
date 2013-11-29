@@ -65,22 +65,9 @@ int createProfile(const char * profile, GHashTable * call_table, struct proxyPar
   return 0;
 }
 
-int main(int argc, char *argv[]) {
-  int socketd;
-  char buff[MAX_CMD_SIZE+1];
-  struct proxyParams * pp;
-
-  GHashTable * call_table;
-  GError * error;
-  GMainLoop * loop;
+int initialize_options(int argc, char *argv[]) {
+  GError * error = NULL;
   GOptionContext * opt_context;
-  GThread * callback_thread;
-  GThread * svc_broadcast_thread;
-
-  // Glib initialisation.
-  // g_type_init();
-  setlinebuf(stdout);
-  loop = g_main_loop_new(NULL, FALSE);
 
   // Command-line options parsing.
   debug("Parsing options...\n");
@@ -90,10 +77,11 @@ int main(int argc, char *argv[]) {
                                "\n"
                                "  ./remote-serv -p 42000 -c cfg.json");
   g_option_context_add_main_entries(opt_context, opt_entries, NULL);
-  error = NULL;
   if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
     g_printerr ("Error parsing options: %s\n", error->message);
-    goto error;
+    g_error_free(error);
+    g_option_context_free(opt_context);
+    return -1;
   }
 
   // Options treatment.
@@ -109,7 +97,30 @@ int main(int argc, char *argv[]) {
     strcpy(opt_config_file, DEFAULT_CONFIG);
   }
 
+  g_option_context_free(opt_context);
+  return 0;
+}
+
+int main(int argc, char *argv[]) {
+  int socketd;
+  char buff[MAX_CMD_SIZE+1];
+  struct proxyParams * pp;
+
+  GHashTable * call_table;
+  GError * error;
+  GMainLoop * loop;
+  GThread * callback_thread;
+  GThread * svc_broadcast_thread;
+
+  // Glib initialisation.
+  // g_type_init();
+  setlinebuf(stdout);
+  if (initialize_options(argc, argv) == -1) {
+    return -1;
+  }
+
   debug("\nCommand-line options parsed!\nParsing config file...\n");
+  loop = g_main_loop_new(NULL, FALSE);
   // Configuration file parsing/loading/treatment.
   // (This creates all the dbus interface)
   call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
@@ -211,7 +222,6 @@ int main(int argc, char *argv[]) {
 error:
   g_error_free(error);
 out:
-  g_option_context_free(opt_context);
   g_free(opt_config_file);
 #ifdef AUDIO_FEEDBACK
   deleteStreamingServer();
