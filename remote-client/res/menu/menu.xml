@@ -6,8 +6,17 @@
     <menu>
     </menu>
   </item>
-  <item android:id="@+id/sleep"
-        android:title="@string/close"
-        android:showAsAction="ifRoom"/>
-
+  <item android:id="@+id/menu"
+        android:title="@string/menu_str"
+        android:icon="@drawable/action_overflow"
+        android:showAsAction="always">
+    <menu>
+      <item android:id="@+id/sleep"
+            android:title="@string/close"
+            android:showAsAction="ifRoom"/>
+      <item android:id="@+id/above_ls"
+            android:checkable="true"
+            android:title="@string/above_ls"/>
+    </menu>
+  </item>
 </menu>

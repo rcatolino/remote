@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="above_ls">Keep above lock screen</string>
     <string name="app_name">Remote</string>
     <string name="cancel">Cancel</string>
     <string name="connect_dialog">Connection</string>
@@ -7,6 +8,7 @@
     <string name="default_port">52000</string>
     <string name="default_host">192.168.</string>
     <string name="disco">Disconnecting...</string>
+    <string name="menu_str">Menu</string>
     <string name="none"> - </string>
     <string name="ok">Connect</string>
     <string name="paused">Paused</string>

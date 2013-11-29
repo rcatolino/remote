@@ -146,7 +146,6 @@ public class RemoteClient extends FragmentActivity
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
     adapter.setOnPreviousNextListener(this);
 
-    getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
   }
 
   @Override
@@ -194,18 +193,27 @@ public class RemoteClient extends FragmentActivity
 
   @Override
   public boolean onPrepareOptionsMenu (Menu menu) {
-    if (profiles == null) {
-      return true;
+    SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+    MenuItem item = menu.findItem(R.id.above_ls);
+    if (item == null) {
+      Log.e(LOGTAG, "Error no item in menu to keep window above lock screen");
+    } else if (prefs.getBoolean("above_ls", false)) {
+      item.setChecked(true);
+      getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+    } else {
+      item.setChecked(false);
+      getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
     }
 
-    Menu profileMenu = menu.findItem(R.id.profile_menu).getSubMenu();
-    if (profileMenu == null) {
-      Log.d(LOGTAG, "The profile menu item had no submenu!");
-      return true;
-    }
-
-    for (int i=0; i<profiles.length; i++) {
-      profileMenu.add(profiles[i]);
+    if (profiles != null) {
+      Menu profileMenu = menu.findItem(R.id.profile_menu).getSubMenu();
+      if (profileMenu == null) {
+        Log.d(LOGTAG, "The profile menu item had no submenu!");
+      } else {
+        for (int i=0; i<profiles.length; i++) {
+          profileMenu.add(profiles[i]);
+        }
+      }
     }
 
     return true;
@@ -221,6 +229,21 @@ public class RemoteClient extends FragmentActivity
     switch (item.getItemId()) {
       case R.id.sleep:
         client.sendCommand(sleepCmd);
+        return true;
+      case R.id.menu:
+        return super.onOptionsItemSelected(item);
+      case R.id.above_ls:
+        SharedPreferences.Editor editor = getPreferences(MODE_PRIVATE).edit();
+        if (item.isChecked() == true) {
+          item.setChecked(false);
+          getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+          editor.putBoolean("above_ls", false);
+        } else {
+          item.setChecked(true);
+          getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+          editor.putBoolean("above_ls", true);
+        }
+        editor.commit();
         return true;
       case R.id.profile_menu:
         return super.onOptionsItemSelected(item);
