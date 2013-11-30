@@ -20,7 +20,9 @@ GVariant *getTrackId() {
   }
 
   g_mutex_lock(&mutex);
-  value = g_variant_new_object_path(mpris_data->trackid);
+  if (mpris_data->trackid) {
+    value = g_variant_new_object_path(mpris_data->trackid);
+  }
   g_mutex_unlock(&mutex);
   return value;
 }
@@ -219,7 +221,8 @@ static void trackChanged(GVariant * data_map) {
     ret |= ARTURL*propertyMaybeChanged(&mpris_data->artUrl, value_str);
   }
 
-  if (!g_variant_lookup(data_map, "mpris:trackid", "s", &value_str)) {
+  if (!g_variant_lookup(data_map, "mpris:trackid", "s", &value_str) &&
+      !g_variant_lookup(data_map, "mpris:trackid", "o", &value_str)) {
     debug("No metadata on trackid!\n");
   } else {
     g_mutex_lock(&mutex);
@@ -312,7 +315,8 @@ static void updateStatus(struct mprisInstance * instance) {
   }
   g_mutex_lock(&mutex);
   if (instance->trackid) g_free(instance->trackid);
-  if (!g_variant_lookup(value, "mpris:trackid", "s", &instance->trackid)) {
+  if (!g_variant_lookup(value, "mpris:trackid", "s", &instance->trackid) &&
+      !g_variant_lookup(value, "mpris:trackid", "o", &instance->trackid)) {
     instance->album = NULL;
     debug("No metadata on trackid!\n");
   }
@@ -488,8 +492,6 @@ void deleteMprisInstance() {
   g_mutex_unlock(&mutex);
   free(mpris_data);
   mpris_data = NULL;
-  g_mutex_clear(&mutex);
-
 }
 
 void updateMprisClientSocket(int socketd) {

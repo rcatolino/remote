@@ -48,13 +48,7 @@
         "dbus-name" : "org.mpris.MediaPlayer2.vlc",
         "path" : "/org/mpris/MediaPlayer2",
         "interface" : "org.mpris.MediaPlayer2.Player",
-        "cmds" : {
-          "PLAY" : "Play",
-          "PAUSE" : "Pause",
-          "STOP" : "Stop",
-          "PREV" : "Previous",
-          "NEXT" : "Next"
-        },
+        "cmds" : "mpris",
         "feedback" : "mpris"
       },
       {

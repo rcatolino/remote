@@ -128,10 +128,11 @@ int handle_command(int client_sock, char *buff, GHashTable *call_table, struct p
   } else if (strlen(buff) >= POSITION_REQ_SZ &&
              strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
     updatePositionProperty();
-  } else if (strlen(buff) > PROFILE_HEAD_SZ &&
+  } else if (strlen(buff) >= PROFILE_HEAD_SZ &&
              strncmp(buff, PROFILE_HEAD, PROFILE_HEAD_SZ) == 0) {
+    debug("Profile change to %s.\n", argument);
     freeProfileRes(call_table, pp);
-    createProfile(buff+PROFILE_HEAD_SZ, call_table, &pp);
+    createProfile(argument, call_table, &pp);
     updateMprisClientSocket(client_sock);
     sendCachedData();
   }

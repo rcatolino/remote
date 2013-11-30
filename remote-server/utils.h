@@ -18,7 +18,7 @@
 
 #define DEFAULT_CONFIG "remote-config.json"
 
-#define PROFILE_HEAD "PROFILE "
+#define PROFILE_HEAD "PROFILE"
 #define PROFILE_HEAD_SZ sizeof(PROFILE_HEAD)-1
 
 #define PROFILES_HEAD "PROFILES "

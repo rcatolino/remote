@@ -41,6 +41,12 @@ void seek_call(struct callParams *cp, const char *argument_buff) {
   }
 
   parameters[0] = getTrackId();
+  if (!parameters[0]) {
+    debug("Error, no trackid available.\n");
+    g_variant_unref(parameters[1]);
+    return;
+  }
+
   call(cp, g_variant_new_tuple(parameters, 2));
 }
 
