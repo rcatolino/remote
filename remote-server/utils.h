@@ -53,10 +53,12 @@ enum argument_type {
   I64
 };
 
+struct callParams;
 struct callParams {
   const struct proxyParams * proxy;
   const char * method;
   enum argument_type arg_type;
+  void (*custom_call)(struct callParams *, const char *);
 };
 
 #endif

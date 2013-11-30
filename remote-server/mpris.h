@@ -72,5 +72,8 @@ void deleteMprisInstance();
 void sendPosition();
 void updatePositionProperty();
 
+GVariant *getTrackId();
+
 int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy);
+
 #endif

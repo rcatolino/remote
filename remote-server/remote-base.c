@@ -120,7 +120,11 @@ int handle_command(int client_sock, char *buff, GHashTable *call_table, struct p
   if (cp) {
     debug("Found method %s() in %s associated with command %s. Calling...\n",
           cp->method, cp->proxy->name, buff);
-    call(cp, argument);
+    if (cp->custom_call) {
+      cp->custom_call(cp, argument);
+    } else {
+      call(cp, NULL);
+    }
   } else if (strlen(buff) >= POSITION_REQ_SZ &&
              strncmp(buff, POSITION_REQ, POSITION_REQ_SZ) == 0) {
     updatePositionProperty();

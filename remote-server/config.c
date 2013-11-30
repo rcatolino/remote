@@ -138,6 +138,7 @@ static int fillCallTable(GHashTable *call_table, const struct proxyParams *proxy
     tmp->proxy = proxy;
     tmp->method = json_string_value(method_name);
     tmp->arg_type = arg_type;
+    tmp->custom_call = NULL; // Command specified manually can't use custom_call.
     g_hash_table_insert(call_table, command_buff, tmp);
     debug("Call params for %s inserted into call table\n", command_name);
     iter = json_object_iter_next(cmd_obj, iter);

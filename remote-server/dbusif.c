@@ -1,6 +1,4 @@
 #include <gio/gio.h>
-#include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "dbusif.h"
@@ -186,30 +184,13 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
   return 0;
 }
 
-GVariant *strToGVariant(const char *argument_buff) {
-  int64_t position = 0;
-  if (sscanf(argument_buff, "%" SCNd64, &position) == EOF) {
-    perror("sscanf ");
-    return NULL;
-  }
-
-  GVariant *gposition = g_variant_new_int64(position);
-  return g_variant_new_tuple(&gposition, 1);
-}
-
-void call(struct callParams *cp, const char *argument_buff) {
+void call(struct callParams *cp, GVariant *parameter) {
   GError *error;
   GVariant *ret;
-  GVariant *parameter = NULL;
-  debug("proxy adress : %p, object type : %s, argument : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy), argument_buff);
-  if (argument_buff != NULL) {
-    if (cp->arg_type == I64) {
-      parameter = strToGVariant(argument_buff);
-      if (!parameter) {
-        debug("Error, couldn't convert %s to int64.\n", argument_buff);
-        return;
-      }
-    }
+  if (parameter) {
+    debug("proxy adress : %p, object type : %s, argument %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy),g_variant_print(parameter, TRUE));
+  } else {
+    debug("proxy adress : %p, object type : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy));
   }
 
   error = NULL;

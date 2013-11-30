@@ -9,8 +9,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+static GMutex mutex;
 static struct mprisInstance * mpris_data = NULL;
 static int client_socket;
+
+GVariant *getTrackId() {
+  GVariant *value = NULL;
+  if (!mpris_data) {
+    return NULL;
+  }
+
+  g_mutex_lock(&mutex);
+  value = g_variant_new_object_path(mpris_data->trackid);
+  g_mutex_unlock(&mutex);
+  return value;
+}
 
 char * pathFromUrl(char * url) {
   if (url[0]=='/') {
@@ -209,7 +222,9 @@ static void trackChanged(GVariant * data_map) {
   if (!g_variant_lookup(data_map, "mpris:trackid", "s", &value_str)) {
     debug("No metadata on trackid!\n");
   } else {
+    g_mutex_lock(&mutex);
     ret |= TRACKID*propertyMaybeChanged(&mpris_data->trackid, value_str);
+    g_mutex_unlock(&mutex);
   }
 
   if (ret != 0) {
@@ -295,11 +310,13 @@ static void updateStatus(struct mprisInstance * instance) {
     instance->artUrl = NULL;
     debug("No metadata on art uri!\n");
   }
+  g_mutex_lock(&mutex);
   if (instance->trackid) g_free(instance->trackid);
   if (!g_variant_lookup(value, "mpris:trackid", "s", &instance->trackid)) {
     instance->album = NULL;
     debug("No metadata on trackid!\n");
   }
+  g_mutex_unlock(&mutex);
 
   g_variant_unref(value);
   debug("Properties updated\n");
@@ -406,8 +423,8 @@ void updateTrackProperty() {
   g_variant_unref(metadata);
 }
 
-int createMprisInstance(struct proxyParams * pp) {
-  struct mprisInstance * instance;
+int createMprisInstance(struct proxyParams *pp) {
+  struct mprisInstance *instance;
   if (mpris_data != NULL) {
     debug("There is already an mpris instance\n");
   }
@@ -466,8 +483,12 @@ void deleteMprisInstance() {
   g_free(mpris_data->artUrl);
   g_free(mpris_data->loop);
   g_free(mpris_data->playback);
+  g_mutex_lock(&mutex);
+  g_free(mpris_data->trackid);
+  g_mutex_unlock(&mutex);
   free(mpris_data);
   mpris_data = NULL;
+  g_mutex_clear(&mutex);
 
 }
 
