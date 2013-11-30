@@ -29,9 +29,10 @@ void printMprisData() {
     return;
   }
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
-Album : %s, Album cover location : %s, Position : %ld, Track Length : %ld\n", mpris_data->playback,
+Album : %s, Album cover location : %s, Position : %ld, Track Length : %ld, Track Id : %s\n", mpris_data->playback,
 mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
-mpris_data->album, mpris_data->artUrl, mpris_data->position, mpris_data->length);
+mpris_data->album, mpris_data->artUrl, mpris_data->position, mpris_data->length,
+mpris_data->trackid);
 }
 
 static void sendPlaybackStatus() {
@@ -88,6 +89,11 @@ static void sendTrackStatus(int property_list) {
     transmitMsg(client_socket, (char *)&length, sizeof(int64_t),
                 TRACK_LENGTH, TRACK_LENGTH_SZ);
   }
+  if (HAS_TRACKID(property_list) && mpris_data->trackid != NULL) {
+    debug("sending trackid : %s\n", mpris_data->trackid);
+    transmitMsg(client_socket, mpris_data->trackid, strlen(mpris_data->trackid),
+                TRACK_ID, TRACK_ID_SZ);
+  }
   if (HAS_ARTURL(property_list) && mpris_data->artUrl != NULL) {
     debug("sending arturl\n");
     transmit(client_socket, TRACK_ARTURL, TRACK_ARTURL_SZ);
@@ -104,7 +110,7 @@ void sendCachedData() {
   sendLoopStatus();
   sendShuffleStatus();
   sendPosition();
-  sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH | ARTURL);
+  sendTrackStatus(TITLE | ARTIST | ALBUM | LENGTH | ARTURL | TRACKID);
 }
 
 static int propertyMaybeChanged(char ** old_value, char * new_value) {
@@ -200,6 +206,12 @@ static void trackChanged(GVariant * data_map) {
     ret |= ARTURL*propertyMaybeChanged(&mpris_data->artUrl, value_str);
   }
 
+  if (!g_variant_lookup(data_map, "mpris:trackid", "s", &value_str)) {
+    debug("No metadata on trackid!\n");
+  } else {
+    ret |= TRACKID*propertyMaybeChanged(&mpris_data->trackid, value_str);
+  }
+
   if (ret != 0) {
     sendTrackStatus(ret);
   }
@@ -282,6 +294,11 @@ static void updateStatus(struct mprisInstance * instance) {
   if (!g_variant_lookup(value, "mpris:artUrl", "s", &instance->artUrl)) {
     instance->artUrl = NULL;
     debug("No metadata on art uri!\n");
+  }
+  if (instance->trackid) g_free(instance->trackid);
+  if (!g_variant_lookup(value, "mpris:trackid", "s", &instance->trackid)) {
+    instance->album = NULL;
+    debug("No metadata on trackid!\n");
   }
 
   g_variant_unref(value);

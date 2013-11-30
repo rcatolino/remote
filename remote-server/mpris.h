@@ -27,18 +27,22 @@
 #define TRACK_ARTURL_SZ sizeof(TRACK_ARTURL)-1
 #define TRACK_LENGTH "TRACK LENGTH "
 #define TRACK_LENGTH_SZ sizeof(TRACK_LENGTH)-1
+#define TRACK_ID "TRACK ID "
+#define TRACK_ID_SZ sizeof(TRACK_ID)-1
 
 #define TITLE   0x01
 #define ARTIST  0x02
 #define ALBUM   0x04
 #define LENGTH  0x08
 #define ARTURL  0x10
+#define TRACKID 0x20
 
-#define HAS_TITLE(a)  (a & TITLE)
-#define HAS_ARTIST(a) (a & ARTIST)
-#define HAS_ALBUM(a)  (a & ALBUM)
-#define HAS_LENGTH(a) (a & LENGTH)
-#define HAS_ARTURL(a) (a & ARTURL)
+#define HAS_TITLE(a)   (a & TITLE)
+#define HAS_ARTIST(a)  (a & ARTIST)
+#define HAS_ALBUM(a)   (a & ALBUM)
+#define HAS_LENGTH(a)  (a & LENGTH)
+#define HAS_ARTURL(a)  (a & ARTURL)
+#define HAS_TRACKID(a) (a & TRACKID)
 
 #define URL_FILE_HEAD "file://"
 #define URL_FILE_HEAD_SZ sizeof(URL_FILE_HEAD)-1
@@ -57,6 +61,7 @@ struct mprisInstance {
   int shuffle;
   char * loop;
   char * playback;
+  char * trackid;
 };
 
 void printMprisData();

@@ -30,6 +30,7 @@ public class TcpClient {
   private static final String LENGTH = "LENGTH";
   private static final String PROFILES = "PROFILES";
   private static final String POSITION = "POSITION";
+  private static final String TRACKID = "ID";
   private static final int POSITION_HEADER_SIZE = 9;
   private static final int TRACK_LENGHT_HEADER_SIZE = 13;
 
@@ -225,6 +226,8 @@ public class TcpClient {
                   ui.setAlbum(track_arg);
                 }
               });
+            } else if (message[0].equals(TRACKID)) {
+              Log.d(LOGTAG, "TrackId changed to " + arg);
             } else if (message[0].equals(LENGTH)) {
               ByteBuffer bb = ByteBuffer.wrap(buffer, TRACK_LENGHT_HEADER_SIZE, 8);
               bb.order(ByteOrder.BIG_ENDIAN);
@@ -256,6 +259,8 @@ public class TcpClient {
                 ui.setProfiles(arg);
               }
             });
+          } else {
+            Log.e(LOGTAG, "Unkown message type : " + message[0]);
           }
         }
 
