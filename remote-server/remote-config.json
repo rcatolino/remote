@@ -7,14 +7,7 @@
         "dbus-name" : "org.mpris.MediaPlayer2.clementine",
         "path" : "/org/mpris/MediaPlayer2",
         "interface" : "org.mpris.MediaPlayer2.Player",
-        "cmds" : {
-          "PLAY" : "Play",
-          "PAUSE" : "Pause",
-          "STOP" : "Stop",
-          "PREV" : "Previous",
-          "NEXT" : "Next",
-          "SEEK" : [ "Seek", "int64" ]
-        },
+        "cmds" : "mpris",
         "feedback" : "mpris"
       },
       {

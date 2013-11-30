@@ -72,4 +72,5 @@ void deleteMprisInstance();
 void sendPosition();
 void updatePositionProperty();
 
+int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy);
 #endif

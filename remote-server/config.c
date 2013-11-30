@@ -14,7 +14,6 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
   json_t * dbus_name;
   json_t * path;
   json_t * interface;
-  json_t * commands;
   json_t * feedback;
 
   app_name = json_object_get(obj, "app");
@@ -52,23 +51,28 @@ static int fillProxyParams(struct proxyParams * tmp, json_t * obj) {
     createMprisInstance(tmp);
   }
 
-  commands = json_object_get(obj, "cmds");
-  if (commands == NULL || !json_is_object(commands)) {
-    debug("proxy object does not have a command section\n");
-    return -1;
-  }
-
   debug("proxy params filled for app %s\n", json_string_value(app_name));
   return 0;
 }
 
-static int fillCallTable(GHashTable * call_table, const struct proxyParams * proxy, json_t * cmd_obj) {
-  char * command_buff;
-  const char * command_name;
-  void * iter;
-  json_t * method_name = NULL;
-  json_t * method_arg = NULL;
-  struct callParams * tmp;
+static int fillCallTable(GHashTable *call_table, const struct proxyParams *proxy, json_t *cmd_obj) {
+  char *command_buff;
+  const char *command_name;
+  void *iter;
+  json_t *method_name = NULL;
+  json_t *method_arg = NULL;
+  struct callParams *tmp;
+
+  if (!cmd_obj) {
+    debug("Config error : no command specification. for proxy %s\n", proxy->name);
+    return -1;
+  }
+
+  if (json_is_string(cmd_obj) && strncmp("mpris", json_string_value(cmd_obj), 5) == 0) {
+    // Use the standart mpris protocol.
+    fillMprisCallTable(call_table, proxy);
+    return 0;
+  }
 
   if (!json_is_object(cmd_obj)) {
     return -1;
@@ -344,7 +348,11 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
       return -1;
     }
 
-    fillCallTable(hash_table, params, json_object_get(data, "cmds"));
+    if (fillCallTable(hash_table, params, json_object_get(data, "cmds")) == -1) {
+      free(params);
+      return -1;
+    }
+
     (*pp) = params;
     return 0;
   }
@@ -367,8 +375,12 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
       continue;
     }
 
+    if (fillCallTable(hash_table, params, json_object_get(obj, "cmds")) == -1) {
+      free(params);
+      continue;
+    }
+
     tmp = params;
-    fillCallTable(hash_table, params, json_object_get(obj, "cmds"));
   }
 
   (*pp) = tmp;
