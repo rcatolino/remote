@@ -1,4 +1,6 @@
 #include <gio/gio.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "dbusif.h"
@@ -184,15 +186,36 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
   return 0;
 }
 
-void call(struct callParams *cp, char *argument_buff) {
+GVariant *strToGVariant(const char *argument_buff) {
+  int64_t position = 0;
+  if (sscanf(argument_buff, "%" SCNd64, &position) == EOF) {
+    perror("sscanf ");
+    return NULL;
+  }
 
-  GError * error;
-  GVariant * ret;
-  debug("proxy adress : %p, object type : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy));
+  GVariant *gposition = g_variant_new_int64(position);
+  return g_variant_new_tuple(&gposition, 1);
+}
+
+void call(struct callParams *cp, const char *argument_buff) {
+  GError *error;
+  GVariant *ret;
+  GVariant *parameter = NULL;
+  debug("proxy adress : %p, object type : %s, argument : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy), argument_buff);
+  if (argument_buff != NULL) {
+    if (cp->arg_type == I64) {
+      parameter = strToGVariant(argument_buff);
+      if (!parameter) {
+        debug("Error, couldn't convert %s to int64.\n", argument_buff);
+        return;
+      }
+    }
+  }
+
   error = NULL;
   ret = g_dbus_proxy_call_sync(G_DBUS_PROXY(cp->proxy->proxy),
                                cp->method,
-                               NULL,
+                               parameter,
                                G_DBUS_CALL_FLAGS_NONE,
                                -1,
                                NULL,

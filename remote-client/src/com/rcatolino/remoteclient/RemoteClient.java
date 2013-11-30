@@ -24,11 +24,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.lang.Long;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -46,9 +47,11 @@ public class RemoteClient extends FragmentActivity
   private static final String sleepCmd = "SLEEP";
   private static final String volumeupCmd = "VOLUMEUP";
   private static final String volumedownCmd = "VOLUMEDOWN";
+  private static final String seekCmd = "SEEK ";
   private static final String streamonCmd = "STREAM_ON";
   private static final String streamoffCmd = "STREAM_OFF";
   private static final String streamstopCmd = "STREAM_STOP";
+  private static final int seekBarMax = 1000000;
   private boolean playing = false;
   private DialogListener dialogListener;
   private boolean connected = false;
@@ -58,7 +61,7 @@ public class RemoteClient extends FragmentActivity
 
   private Button connectB;
   private ImageButton playPauseB;
-  private ProgressBar positionPB;
+  private SeekBar positionSB;
   private TextView titleTV;
   private TextView artistTV;
   private TextView albumTV;
@@ -66,6 +69,25 @@ public class RemoteClient extends FragmentActivity
   private ViewPager pager;
   private ImageViewAdapter adapter;
   private String[] profiles = null;
+
+  private class ProgressBarListener implements SeekBar.OnSeekBarChangeListener {
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+      if (!fromUser || !connected || client == null) {
+        return;
+      }
+
+      double ratio = (double)progress/(double)seekBarMax;
+      long position = (long)(ratio * trackLength);
+      Log.d(LOGTAG, "callback : Position : " + position + ", track length : " + trackLength + ", ratio " + ratio + ", progress : " + progress);
+      client.sendCommand(seekCmd + position);
+    }
+
+    public void onStartTrackingTouch(SeekBar seekBar) {
+    }
+
+    public void onStopTrackingTouch(SeekBar seekBar) {
+    }
+  }
 
   private class PositionQuery implements Runnable {
     private ScheduledThreadPoolExecutor scheduler;
@@ -140,7 +162,9 @@ public class RemoteClient extends FragmentActivity
     artistTV = (TextView) findViewById(R.id.artist_text);
     albumTV = (TextView) findViewById(R.id.album_text);
     playbackTV = (TextView) findViewById(R.id.playback_text);
-    positionPB = (ProgressBar) findViewById(R.id.progress_bar);
+    positionSB = (SeekBar) findViewById(R.id.seek_bar);
+    positionSB.setMax(seekBarMax);
+    positionSB.setOnSeekBarChangeListener(new ProgressBarListener());
     pager = (ViewPager) findViewById(R.id.pager);
     pager.setPageMargin(200);
     adapter = new ImageViewAdapter(this.getSupportFragmentManager(), pager);
@@ -465,8 +489,10 @@ public class RemoteClient extends FragmentActivity
       return;
     }
 
-    int progress = (int)((100*position)/trackLength);
-    positionPB.setProgress(progress);
+    double ratio = (double)position/(double)trackLength;
+    int progress = (int)(ratio*seekBarMax);
+    Log.d(LOGTAG, "Position : " + position + ", track length : " + trackLength + ", ratio " + ratio + ", progress : " + progress);
+    positionSB.setProgress(progress);
   }
 
   public void setTrackLength(long tl) {

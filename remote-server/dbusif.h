@@ -11,7 +11,7 @@ int createConnection(struct proxyParams *pp, GCallback on_property_changed,
 
 void closeConnection(struct proxyParams *pp);
 
-void call(struct callParams *cp, char *argument_buff);
+void call(struct callParams *cp, const char *argument_buff);
 
 void updateClientSocket(int socketd);
 

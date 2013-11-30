@@ -29,9 +29,9 @@ void printMprisData() {
     return;
   }
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
-Album : %s, Album cover location : %s, Position : %ld\n", mpris_data->playback,
+Album : %s, Album cover location : %s, Position : %ld, Track Length : %ld\n", mpris_data->playback,
 mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
-mpris_data->album, mpris_data->artUrl, mpris_data->position);
+mpris_data->album, mpris_data->artUrl, mpris_data->position, mpris_data->length);
 }
 
 static void sendPlaybackStatus() {
@@ -273,7 +273,8 @@ static void updateStatus(struct mprisInstance * instance) {
     instance->album = NULL;
     debug("No metadata on album!\n");
   }
-  if (!g_variant_lookup(value, "mpris:length", "i", &instance->length)) {
+  if (!g_variant_lookup(value, "mpris:length", "i", &instance->length) &&
+      !g_variant_lookup(value, "mpris:length", "x", &instance->length)) {
     instance->length = 0;
     debug("No metadata on length!\n");
   }

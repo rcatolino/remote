@@ -49,7 +49,7 @@
     android:layout_weight="1"
     android:gravity="center"/>
 
-  <ProgressBar android:id="@+id/progress_bar"
+  <SeekBar android:id="@+id/seek_bar"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
     android:layout_marginRight="5dp"
