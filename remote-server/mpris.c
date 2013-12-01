@@ -317,7 +317,7 @@ static void updateStatus(struct mprisInstance * instance) {
   if (instance->trackid) g_free(instance->trackid);
   if (!g_variant_lookup(value, "mpris:trackid", "s", &instance->trackid) &&
       !g_variant_lookup(value, "mpris:trackid", "o", &instance->trackid)) {
-    instance->album = NULL;
+    instance->trackid = NULL;
     debug("No metadata on trackid!\n");
   }
   g_mutex_unlock(&mutex);
