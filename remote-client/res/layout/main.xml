@@ -61,10 +61,17 @@
     android:layout_height="75dp"
     android:gravity="center">
 
+    <Button android:id="@+id/repeat"
+      android:background="@drawable/remote_music_repeat_disabled"
+      android:layout_width="35dp"
+      android:layout_height="25dp"
+      android:layout_marginRight="5dp"
+      android:onClick="repeat"/>
+
     <ImageButton android:id="@+id/previous"
       android:src="@drawable/remote_music_previous"
       android:background="@null"
-      android:layout_width="75dp"
+      android:layout_width="70dp"
       android:layout_height="fill_parent"
       android:scaleType="fitXY"
       android:contentDescription="Previous"
@@ -74,7 +81,7 @@
     <ImageButton android:id="@+id/play_pause"
       android:src="@drawable/remote_music_pause"
       android:background="@null"
-      android:layout_width="75dp"
+      android:layout_width="70dp"
       android:layout_height="fill_parent"
       android:scaleType="fitXY"
       android:contentDescription="Play/Pause"
@@ -84,13 +91,19 @@
     <ImageButton android:id="@+id/next"
       android:src="@drawable/remote_music_next"
       android:background="@null"
-      android:layout_width="75dp"
+      android:layout_width="70dp"
       android:layout_height="fill_parent"
       android:scaleType="fitXY"
       android:contentDescription="Next"
       android:clickable="false"
       android:onClick="next"/>
 
+    <Button android:id="@+id/shuffle"
+      android:background="@drawable/remote_music_shuffle_disabled"
+      android:layout_width="35dp"
+      android:layout_height="25dp"
+      android:layout_marginLeft="5dp"
+      android:onClick="shuffle"/>
   </LinearLayout>
 
 </LinearLayout>

@@ -241,8 +241,18 @@ public class TcpClient {
             }
           } else if (message[0].equals(LOOP)) {
             Log.d(LOGTAG, "Loop status changed to " + arg);
+            ui.runOnUiThread(new Runnable() {
+              public void run() {
+                ui.setLoopStatus(arg);
+              }
+            });
           } else if (message[0].equals(SHUFFLE)) {
             Log.d(LOGTAG, "Shuffle status changed to " + arg);
+            ui.runOnUiThread(new Runnable() {
+              public void run() {
+                ui.setShuffleStatus(arg);
+              }
+            });
           } else if (message[0].equals(POSITION)) {
             ByteBuffer bb = ByteBuffer.wrap(buffer, POSITION_HEADER_SIZE, 8);
             bb.order(ByteOrder.BIG_ENDIAN);

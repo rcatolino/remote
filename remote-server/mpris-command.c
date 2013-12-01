@@ -50,6 +50,9 @@ void seek_call(struct callParams *cp, const char *argument_buff) {
   call(cp, g_variant_new_tuple(parameters, 2));
 }
 
+void shuffle_call(struct callParams *cp, const char *argument_buff) {
+}
+
 int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy) {
   char *key;
   struct callParams *tmp;

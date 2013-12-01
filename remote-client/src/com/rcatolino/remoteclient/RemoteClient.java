@@ -51,8 +51,12 @@ public class RemoteClient extends FragmentActivity
   private static final String streamonCmd = "STREAM_ON";
   private static final String streamoffCmd = "STREAM_OFF";
   private static final String streamstopCmd = "STREAM_STOP";
+  private static final String shuffleCmd = "SHUFFLE ";
+  private static final String repeatCmd = "REPEAT ";
   private static final int seekBarMax = 1000000;
   private boolean playing = false;
+  private int repeat = 0;
+  private boolean shuffle = false;
   private DialogListener dialogListener;
   private boolean connected = false;
   private TcpClient client;
@@ -60,6 +64,8 @@ public class RemoteClient extends FragmentActivity
   private long trackLength = 0;
 
   private Button connectB;
+  private Button repeatB;
+  private Button shuffleB;
   private ImageButton playPauseB;
   private SeekBar positionSB;
   private TextView titleTV;
@@ -158,6 +164,8 @@ public class RemoteClient extends FragmentActivity
 
     playPauseB = (ImageButton) findViewById(R.id.play_pause);
     connectB = (Button) findViewById(R.id.connect_button);
+    shuffleB = (Button) findViewById(R.id.shuffle);
+    repeatB = (Button) findViewById(R.id.repeat);
     titleTV = (TextView) findViewById(R.id.title_text);
     artistTV = (TextView) findViewById(R.id.artist_text);
     albumTV = (TextView) findViewById(R.id.album_text);
@@ -371,6 +379,48 @@ public class RemoteClient extends FragmentActivity
     client.sendCommand(nextCmd);
   }
 
+  public void repeat(View previousButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed for previous while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    if (repeat == 0) {
+      client.sendCommand(repeatCmd + "Track");
+    } else if (repeat == 1) {
+      client.sendCommand(repeatCmd + "Playlist");
+    } else if (repeat == 2) {
+      client.sendCommand(repeatCmd + "None");
+    }
+  }
+
+  public void shuffle(View previousButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed for previous while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    if (shuffle) {
+    Log.d(LOGTAG, "shuffle off");
+      client.sendCommand(shuffleCmd + "OFF");
+    } else {
+    Log.d(LOGTAG, "shuffle on");
+      client.sendCommand(shuffleCmd + "ON");
+    }
+  }
+
   public void playPause(View playPauseButton) {
     if (!connected) {
       Log.d(LOGTAG, "Error aksed for play/pause while unconnected!");
@@ -431,6 +481,29 @@ public class RemoteClient extends FragmentActivity
     pQuery.stop();
     client = null;
     clearData();
+  }
+
+  public void setShuffleStatus(String status) {
+    if (status.equals("ON")) {
+      shuffleB.setBackgroundResource(R.drawable.remote_music_shuffle_enabled);
+      shuffle = true;
+    } else if (status.equals("OFF")) {
+      shuffleB.setBackgroundResource(R.drawable.remote_music_shuffle_disabled);
+      shuffle = false;
+    }
+  }
+
+  public void setLoopStatus(String status) {
+    if (status.equals("None")) {
+      repeatB.setBackgroundResource(R.drawable.remote_music_repeat_disabled);
+      repeat = 0;
+    } else if (status.equals("Track")) {
+      repeatB.setBackgroundResource(R.drawable.remote_music_repeat_one);
+      repeat = 1;
+    } else if (status.equals("Playlist")) {
+      repeatB.setBackgroundResource(R.drawable.remote_music_repeat_all);
+      repeat = 2;
+    }
   }
 
   public void setPlaybackStatus(String status) {
