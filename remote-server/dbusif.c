@@ -34,6 +34,32 @@ GVariant * updateProperty(const struct proxyParams * pp,
   return property;
 }
 
+int setProperty(const struct proxyParams * pp, const char *prop_name,
+                GVariant *value) {
+  GError *error;
+  GVariant *ret;
+  error = NULL;
+  if (!pp->proxy) {
+    debug("updateProperty : Cannot set property %s since dbus proxy for %s is inexistant\n",
+          prop_name,
+          pp->name);
+    return -1;
+  }
+
+  ret = g_dbus_proxy_call_sync(pp->proxy,
+                               "org.freedesktop.DBus.Properties.Set",
+                               g_variant_new("(ssv)", pp->interface, prop_name, value),
+                               G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
+  if (ret == NULL) {
+    debug("updateProperty : Error setting property %s : %s to %s\n", prop_name, error->message,
+          g_variant_print(value, TRUE));
+    return -1;
+  }
+
+  g_variant_unref(ret);
+  return 0;
+}
+
 static void printProperties (GDBusProxy *proxy)
 {
   gchar **property_names;

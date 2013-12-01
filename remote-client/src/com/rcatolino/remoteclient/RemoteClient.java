@@ -52,7 +52,7 @@ public class RemoteClient extends FragmentActivity
   private static final String streamoffCmd = "STREAM_OFF";
   private static final String streamstopCmd = "STREAM_STOP";
   private static final String shuffleCmd = "SHUFFLE ";
-  private static final String repeatCmd = "REPEAT ";
+  private static final String repeatCmd = "LOOP ";
   private static final int seekBarMax = 1000000;
   private boolean playing = false;
   private int repeat = 0;

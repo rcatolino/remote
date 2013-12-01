@@ -85,7 +85,7 @@ static int fillCallTable(GHashTable *call_table, const struct proxyParams *proxy
   }
 
   while (iter) {
-    enum argument_type arg_type = NO_TYPE;
+    enum argumentType arg_type = NO_TYPE;
     command_name = json_object_iter_key(iter);
     method_name = json_object_iter_value(iter);
     if (method_name == NULL || strlen(command_name) >= MAX_CMD_SIZE) {

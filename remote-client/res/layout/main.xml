@@ -63,9 +63,8 @@
 
     <Button android:id="@+id/repeat"
       android:background="@drawable/remote_music_repeat_disabled"
-      android:layout_width="35dp"
-      android:layout_height="25dp"
-      android:layout_marginRight="5dp"
+      android:layout_width="55dp"
+      android:layout_height="45dp"
       android:onClick="repeat"/>
 
     <ImageButton android:id="@+id/previous"
@@ -100,9 +99,8 @@
 
     <Button android:id="@+id/shuffle"
       android:background="@drawable/remote_music_shuffle_disabled"
-      android:layout_width="35dp"
-      android:layout_height="25dp"
-      android:layout_marginLeft="5dp"
+      android:layout_width="55dp"
+      android:layout_height="45dp"
       android:onClick="shuffle"/>
   </LinearLayout>
 

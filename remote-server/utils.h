@@ -48,16 +48,18 @@ struct proxyParams {
   struct proxyParams * prev;
 };
 
-enum argument_type {
+enum argumentType {
+  BOOL,
+  I64,
   NO_TYPE,
-  I64
+  STR
 };
 
 struct callParams;
 struct callParams {
   const struct proxyParams * proxy;
   const char * method;
-  enum argument_type arg_type;
+  enum argumentType arg_type;
   void (*custom_call)(struct callParams *, const char *);
 };
 
