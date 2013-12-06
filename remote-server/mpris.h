@@ -55,6 +55,7 @@ struct mprisInstance {
   char * album;
   int64_t length;
   int64_t position;
+  double volume;
   char * next;
   char * previous;
   char * artUrl;
@@ -73,6 +74,7 @@ void sendPosition();
 void updatePositionProperty();
 
 GVariant *getTrackId();
+double getVolume();
 
 int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy);
 

@@ -27,6 +27,18 @@ GVariant *getTrackId() {
   return value;
 }
 
+double getVolume() {
+  double value = 0;
+  if (!mpris_data) {
+    return 0;
+  }
+
+  g_mutex_lock(&mutex);
+  value = mpris_data->volume;
+  g_mutex_unlock(&mutex);
+  return value;
+}
+
 char * pathFromUrl(char * url) {
   if (url[0]=='/') {
     return url;
@@ -44,10 +56,18 @@ void printMprisData() {
     return;
   }
   printf("Playback : %s, Loop : %s, Shuffle : %d.\n\tTitle : %s, Artist : %s,\
-Album : %s, Album cover location : %s, Position : %ld, Track Length : %ld, Track Id : %s\n", mpris_data->playback,
-mpris_data->loop, mpris_data->shuffle, mpris_data->title, mpris_data->artist,
-mpris_data->album, mpris_data->artUrl, mpris_data->position, mpris_data->length,
-mpris_data->trackid);
+Album : %s, Album cover location : %s, Volume : %lf, Position : %ld, Track Length : %ld, Track Id : %s\n",
+         mpris_data->playback,
+         mpris_data->loop,
+         mpris_data->shuffle,
+         mpris_data->title,
+         mpris_data->artist,
+         mpris_data->album,
+         mpris_data->artUrl,
+         mpris_data->volume,
+         mpris_data->position,
+         mpris_data->length,
+         mpris_data->trackid);
 }
 
 static void sendPlaybackStatus() {
@@ -161,6 +181,14 @@ static void shuffleChanged(int value) {
     mpris_data->shuffle = value;
     sendShuffleStatus();
   }
+}
+
+static void volumeChanged(double value) {
+  g_mutex_lock(&mutex);
+  if (value != mpris_data->volume) {
+    mpris_data->volume = value;
+  }
+  g_mutex_unlock(&mutex);
 }
 
 static void positionChanged(int64_t value) {
@@ -277,6 +305,16 @@ static void updateStatus(struct mprisInstance * instance) {
     g_variant_unref(value);
   }
 
+  value = g_dbus_proxy_get_cached_property(instance->player->proxy, "Volume");
+  if (value == NULL) {
+    debug("The player %s does not implement the Volume property\n", instance->player->name);
+  } else {
+    g_mutex_lock(&mutex);
+    instance->volume = g_variant_get_double(value);
+    g_mutex_unlock(&mutex);
+    g_variant_unref(value);
+  }
+
   value = g_dbus_proxy_get_cached_property(instance->player->proxy, "Metadata");
   if (value == NULL) {
     debug("The player %s does not implement the Metadata property\n", instance->player->name);
@@ -353,6 +391,8 @@ static void onPropertiesChanged(GDBusProxy          *proxy,
         shuffleChanged(g_variant_get_boolean(value));
       } else if (strcmp(key, "Position") == 0) {
         positionChanged(g_variant_get_int64(value));
+      } else if (strcmp(key, "Volume") == 0) {
+        volumeChanged(g_variant_get_double(value));
       }
     }
 
@@ -405,6 +445,16 @@ void updatePositionProperty() {
   }
 
   g_variant_unref(position);
+}
+
+void updateVolumeProperty() {
+  GVariant * volume = updateProperty(mpris_data->player, "Volume");
+  if (volume == NULL) {
+    return;
+  }
+
+  volumeChanged(g_variant_get_double(volume));
+  g_variant_unref(volume);
 }
 
 void updatePlaybackProperty() {

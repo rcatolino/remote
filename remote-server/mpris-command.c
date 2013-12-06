@@ -16,6 +16,8 @@ struct mprisCmd {
 void seek_call(struct callParams *cp, const char *argument_buff);
 void shuffle_call(struct callParams *cp, const char *argument_buff);
 void loop_call(struct callParams *cp, const char *argument_buff);
+void volume_up(struct callParams *cp, const char *argument_buff);
+void volume_down(struct callParams *cp, const char *argument_buff);
 
 static const struct mprisCmd mpris_cmds[] = {
   { .client_cmd = "PLAY", .mpris_method = "Play", .arg_type = NO_TYPE, .custom_call = NULL },
@@ -23,6 +25,8 @@ static const struct mprisCmd mpris_cmds[] = {
   { .client_cmd = "STOP", .mpris_method = "Stop", .arg_type = NO_TYPE, .custom_call = NULL },
   { .client_cmd = "PREV", .mpris_method = "Previous", .arg_type = NO_TYPE, .custom_call = NULL },
   { .client_cmd = "NEXT", .mpris_method = "Next", .arg_type = NO_TYPE, .custom_call = NULL },
+  { .client_cmd = "VOLUMEUP", .mpris_method = "Volume", .arg_type = NO_TYPE, .custom_call = volume_up },
+  { .client_cmd = "VOLUMEDOWN", .mpris_method = "Volume", .arg_type = NO_TYPE, .custom_call = volume_down },
   { .client_cmd = "SEEK", .mpris_method = "SetPosition", .arg_type = I64, .custom_call = seek_call },
   { .client_cmd = "SHUFFLE", .mpris_method = "Shuffle", .arg_type = BOOL, .custom_call = shuffle_call },
   { .client_cmd = "LOOP", .mpris_method = "LoopStatus", .arg_type = STR, .custom_call = loop_call }
@@ -106,6 +110,16 @@ void loop_call(struct callParams *cp, const char *argument_buff) {
   setProperty(cp->proxy, cp->method, value);
 }
 
+void volume_up(struct callParams *cp, const char *argument_buff) {
+  debug("Custom dbus call volume_up for property %s.\n", cp->method);
+  setProperty(cp->proxy, cp->method, g_variant_new_double(getVolume()+0.1));
+}
+
+void volume_down(struct callParams *cp, const char *argument_buff) {
+  debug("Custom dbus call volume_down for property %s.\n", cp->method);
+  setProperty(cp->proxy, cp->method, g_variant_new_double(getVolume()-0.1));
+}
+
 int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy) {
   char *key;
   struct callParams *tmp;
@@ -113,6 +127,15 @@ int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy) 
 
   debug("Creating standard mpris command config\n");
   for (i = 0; i < sizeof(mpris_cmds)/sizeof(mpris_cmds[0]); i++) {
+    if (g_hash_table_contains(call_table, mpris_cmds[i].client_cmd)) {
+      // This command has already been assigned a method. Manual command
+      // specifications have priority over mpris ones, so that one can override
+      // the mpris defaults for a specific command and keep the mpris defaults
+      // for the rest.
+      debug("Call params for %s were already specified in call table. Call params ignored.\n", mpris_cmds[i].client_cmd);
+      continue;
+    }
+
     // Memory allocated here is freed by glib when the hash table is emptied.
     key = malloc(sizeof(mpris_cmds[i].client_cmd));
     strcpy(key, mpris_cmds[i].client_cmd);
