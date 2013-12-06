@@ -51,8 +51,7 @@ int setProperty(const struct proxyParams * pp, const char *prop_name,
                                g_variant_new("(ssv)", pp->interface, prop_name, value),
                                G_DBUS_CALL_FLAGS_NONE, -1, NULL, &error);
   if (ret == NULL) {
-    debug("updateProperty : Error setting property %s : %s to %s\n", prop_name, error->message,
-          g_variant_print(value, TRUE));
+    debug("updateProperty : Error setting property %s : %s\n", prop_name, error->message);
     return -1;
   }
 
