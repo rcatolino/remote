@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <unistd.h>
+
 #include "config.h"
 #include "dbusif.h"
 #include "service-broadcast.h"
@@ -191,6 +193,7 @@ int main(int argc, char *argv[]) {
   GThread *callback_thread;
   GThread *svc_broadcast_thread;
 
+  debug("uid : %d, gid : %d. %s %s\n", getuid(), getgid(), getenv("DISPLAY"), getenv("DBUS_SESSION_BUS_ADDRESS"));
   // Glib initialisation.
   // g_type_init();
   setlinebuf(stdout);

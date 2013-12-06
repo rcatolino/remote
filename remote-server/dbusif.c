@@ -146,7 +146,7 @@ void closeConnection(struct proxyParams * pp) {
     return;
   }
 
-  debug("closeConnection : closing %s\n", pp->name);
+  debug("closeConnection : closing %s, %p\n", pp->name, pp->proxy);
   g_object_unref(pp->proxy);
   pp->proxy = NULL;
 }
@@ -162,6 +162,7 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
   proxy = NULL;
   error = NULL;
 
+  pp->proxy = NULL;
   flags = G_DBUS_PROXY_FLAGS_NONE;
   proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
                                          flags,
@@ -213,6 +214,12 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
 void call(struct callParams *cp, GVariant *parameter) {
   GError *error;
   GVariant *ret;
+
+  if (!cp->proxy->proxy) {
+    debug("dbusif.c : Error, unconnected proxy %s.\n", cp->proxy->name);
+    return;
+  }
+
   if (parameter) {
     debug("proxy adress : %p, object type : %s, argument %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy),g_variant_print(parameter, TRUE));
   } else {
