@@ -73,11 +73,11 @@ int initialize_options(int argc, char *argv[]) {
 
   // Command-line options parsing.
   debug("Parsing options...\n");
-  opt_context = g_option_context_new("remote-serv example");
+  opt_context = g_option_context_new("");
   g_option_context_set_summary(opt_context,
                                "Example: to listen on port 42000 and read config from \'cfg.json\' use:\n"
                                "\n"
-                               "  ./remote-serv -p 42000 -c cfg.json");
+                               "  ./remote-server -p 42000 -c cfg.json");
   g_option_context_add_main_entries(opt_context, opt_entries, NULL);
   if (!g_option_context_parse(opt_context, &argc, &argv, &error)) {
     g_printerr ("Error parsing options: %s\n", error->message);

@@ -87,7 +87,6 @@ int waitClient(int listen_socket){
   debug("new connection\n");
   debug("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
   debug("\tremote port : %d\n", ntohs(client_address.sin_port));
-  g_mutex_init(&mutex);
   client_socket = request_socketd;
 	return request_socketd;
 }
@@ -95,7 +94,6 @@ int waitClient(int listen_socket){
 void closeClient(int client_sock){
 
   debug("Client deconected\n");
-  g_mutex_clear(&mutex);
   shutdown(client_sock, SHUT_RDWR);
 	close(client_sock);
 }
