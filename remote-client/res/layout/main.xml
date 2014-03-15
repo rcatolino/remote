@@ -67,15 +67,15 @@
       android:layout_height="45dp"
       android:onClick="repeat"/>
 
-    <ImageButton android:id="@+id/previous"
-      android:src="@drawable/remote_music_previous"
+    <ImageButton android:id="@+id/back_seek"
+      android:src="@drawable/remote_music_rewind"
       android:background="@null"
-      android:layout_width="70dp"
-      android:layout_height="fill_parent"
+      android:layout_width="50dp"
+      android:layout_height="wrap_content"
       android:scaleType="fitXY"
-      android:contentDescription="Previous"
+      android:contentDescription="Seek"
       android:clickable="false"
-      android:onClick="previous"/>
+      android:onClick="backSeek"/>
 
     <ImageButton android:id="@+id/play_pause"
       android:src="@drawable/remote_music_pause"
@@ -87,15 +87,15 @@
       android:clickable="false"
       android:onClick="playPause"/>
 
-    <ImageButton android:id="@+id/next"
-      android:src="@drawable/remote_music_next"
+    <ImageButton android:id="@+id/forward_seek"
+      android:src="@drawable/remote_music_ff"
       android:background="@null"
-      android:layout_width="70dp"
-      android:layout_height="fill_parent"
+      android:layout_width="50dp"
+      android:layout_height="wrap_content"
       android:scaleType="fitXY"
-      android:contentDescription="Next"
+      android:contentDescription="Seek"
       android:clickable="false"
-      android:onClick="next"/>
+      android:onClick="forwardSeek"/>
 
     <Button android:id="@+id/shuffle"
       android:background="@drawable/remote_music_shuffle_disabled"

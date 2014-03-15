@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Seeking forward or backward moves the position by .5% (100/200) of the total track length.
+#define SEEK_FACTOR 200
+
 struct mprisCmd {
   const char *client_cmd;
   const char *mpris_method;
@@ -14,6 +17,7 @@ struct mprisCmd {
 };
 
 void seek_call(struct callParams *cp, const char *argument_buff);
+void setpos_call(struct callParams *cp, const char *argument_buff);
 void shuffle_call(struct callParams *cp, const char *argument_buff);
 void loop_call(struct callParams *cp, const char *argument_buff);
 void volume_up(struct callParams *cp, const char *argument_buff);
@@ -27,7 +31,8 @@ static const struct mprisCmd mpris_cmds[] = {
   { .client_cmd = "NEXT", .mpris_method = "Next", .arg_type = NO_TYPE, .custom_call = NULL },
   { .client_cmd = "VOLUMEUP", .mpris_method = "Volume", .arg_type = NO_TYPE, .custom_call = volume_up },
   { .client_cmd = "VOLUMEDOWN", .mpris_method = "Volume", .arg_type = NO_TYPE, .custom_call = volume_down },
-  { .client_cmd = "SEEK", .mpris_method = "SetPosition", .arg_type = I64, .custom_call = seek_call },
+  { .client_cmd = "SETPOS", .mpris_method = "SetPosition", .arg_type = I64, .custom_call = setpos_call},
+  { .client_cmd = "SEEK", .mpris_method = "Seek", .arg_type = BOOL, .custom_call = seek_call },
   { .client_cmd = "SHUFFLE", .mpris_method = "Shuffle", .arg_type = BOOL, .custom_call = shuffle_call },
   { .client_cmd = "LOOP", .mpris_method = "LoopStatus", .arg_type = STR, .custom_call = loop_call }
 };
@@ -44,6 +49,26 @@ static GVariant *strToI64GVariant(const char *argument_buff) {
 }
 
 void seek_call(struct callParams *cp, const char *argument_buff) {
+  GVariant *parameter = NULL;
+
+  debug("Custom dbus call for method %s, argument %s.\n", cp->method, argument_buff);
+  if (argument_buff == NULL || cp->arg_type != BOOL) {
+    debug("Error, bad position argument for call to %s.\n", cp->method);
+    return;
+  }
+
+  if (strcmp(argument_buff, "BACKWARD") == 0) {
+    parameter = g_variant_new_int64(-1*getTrackLength()/SEEK_FACTOR);
+  } else if (strcmp(argument_buff, "FORWARD") == 0) {
+    parameter = g_variant_new_int64(getTrackLength()/SEEK_FACTOR);
+  } else {
+    debug("Error, valid values for %s property are : BACKWARD and FORWARD.\n", cp->method);
+  }
+
+  call(cp, g_variant_new_tuple(&parameter, 1));
+}
+
+void setpos_call(struct callParams *cp, const char *argument_buff) {
   GVariant *parameters[2] = {NULL, NULL};
 
   debug("Custom dbus call for method %s, argument %s.\n", cp->method, argument_buff);

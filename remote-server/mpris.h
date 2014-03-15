@@ -73,6 +73,7 @@ void deleteMprisInstance();
 void sendPosition();
 void updatePositionProperty();
 
+int64_t getTrackLength();
 GVariant *getTrackId();
 double getVolume();
 

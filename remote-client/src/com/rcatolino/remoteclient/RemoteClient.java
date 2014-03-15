@@ -48,6 +48,7 @@ public class RemoteClient extends FragmentActivity
   private static final String volumeupCmd = "VOLUMEUP";
   private static final String volumedownCmd = "VOLUMEDOWN";
   private static final String seekCmd = "SEEK ";
+  private static final String setposCmd = "SETPOS ";
   private static final String streamonCmd = "STREAM_ON";
   private static final String streamoffCmd = "STREAM_OFF";
   private static final String streamstopCmd = "STREAM_STOP";
@@ -85,7 +86,7 @@ public class RemoteClient extends FragmentActivity
       double ratio = (double)progress/(double)seekBarMax;
       long position = (long)(ratio * trackLength);
       Log.d(LOGTAG, "callback : Position : " + position + ", track length : " + trackLength + ", ratio " + ratio + ", progress : " + progress);
-      client.sendCommand(seekCmd + position);
+      client.sendCommand(setposCmd + position);
     }
 
     public void onStartTrackingTouch(SeekBar seekBar) {
@@ -377,6 +378,36 @@ public class RemoteClient extends FragmentActivity
     }
 
     client.sendCommand(nextCmd);
+  }
+
+  public void forwardSeek(View forwardSeekButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed to seek while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    client.sendCommand(seekCmd + "FORWARD");
+  }
+
+  public void backSeek(View backSeekButton) {
+    if (!connected) {
+      Log.d(LOGTAG, "Error aksed to seek while unconnected!");
+      return;
+    }
+
+    if (client == null) {
+      // We've been disconnected
+      Log.d(LOGTAG, "The remote has been disconnected");
+      return;
+    }
+
+    client.sendCommand(seekCmd + "BACKWARD");
   }
 
   public void repeat(View previousButton) {

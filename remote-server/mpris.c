@@ -6,12 +6,27 @@
 #include <arpa/inet.h>
 #include <endian.h>
 #include <gio/gio.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 
 static GMutex mutex;
 static struct mprisInstance * mpris_data = NULL;
 static int client_socket;
+
+int64_t getTrackLength() {
+  int64_t value = 0;
+  if (!mpris_data) {
+    return 0;
+  }
+
+  g_mutex_lock(&mutex);
+  if (mpris_data->length) {
+    value = mpris_data->length;
+  }
+  g_mutex_unlock(&mutex);
+  return value;
+}
 
 GVariant *getTrackId() {
   GVariant *value = NULL;
