@@ -9,6 +9,9 @@ GVariant *updateProperty(const struct proxyParams *pp,
 int setProperty(const struct proxyParams * pp, const char *prop_name,
                 GVariant *value);
 
+int createConnectionOnBus(struct proxyParams * pp, GCallback on_property_changed,
+                          GCallback on_name_owner_changed, GBusType bus);
+
 int createConnection(struct proxyParams *pp, GCallback on_property_changed,
                      GCallback on_name_owner_changed);
 

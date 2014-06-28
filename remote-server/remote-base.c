@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 
+#include "btserver.h"
 #include "config.h"
 #include "dbusif.h"
 #include "service-broadcast.h"
@@ -184,7 +185,7 @@ int handle_client(int client_sock, GHashTable *call_table, struct proxyParams *p
 }
 
 int main(int argc, char *argv[]) {
-  int socketd;
+  int tcpsocketd;
   struct proxyParams *pp;
 
   GHashTable *call_table;
@@ -225,10 +226,11 @@ int main(int argc, char *argv[]) {
     goto error;
   }
 
-  // Start tcp server.
+  // Start tcp server & bt server
   debug("\nProxies created !\nCreating network connection...\n");
-  socketd = initServer(opt_port);
-  if (socketd == -1) {
+  btInitService();
+  tcpsocketd = initServer(opt_port);
+  if (tcpsocketd == -1) {
     goto out;
   }
 
@@ -243,13 +245,13 @@ int main(int argc, char *argv[]) {
 
   debug("\nConnection created!\n");
   while (1) {
-    int clients = waitClient(socketd);
+    int clients = waitClient(tcpsocketd);
     if (clients == -1) {
       // We can't connect to a client.
       goto out;
     }
 
-    debug("\nconnected to socket : %d\n", socketd);
+    debug("\nconnected to socket : %d\n", tcpsocketd);
     handle_client(clients, call_table, pp);
   }
 

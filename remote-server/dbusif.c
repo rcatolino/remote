@@ -151,8 +151,13 @@ void closeConnection(struct proxyParams * pp) {
 }
 
 int createConnection(struct proxyParams * pp, GCallback on_property_changed,
-                     GCallback on_name_owner_changed)
-{
+                     GCallback on_name_owner_changed) {
+  return createConnectionOnBus(pp, on_property_changed, on_name_owner_changed,
+                               G_BUS_TYPE_SESSION);
+}
+
+int createConnectionOnBus(struct proxyParams * pp, GCallback on_property_changed,
+                          GCallback on_name_owner_changed, GBusType bus) {
   GError *error;
   GDBusProxyFlags flags;
   GDBusProxy *proxy;
@@ -163,7 +168,7 @@ int createConnection(struct proxyParams * pp, GCallback on_property_changed,
 
   pp->proxy = NULL;
   flags = G_DBUS_PROXY_FLAGS_NONE;
-  proxy = g_dbus_proxy_new_for_bus_sync(G_BUS_TYPE_SESSION,
+  proxy = g_dbus_proxy_new_for_bus_sync(bus,
                                          flags,
                                          NULL, /* GDBusInterfaceInfo */
                                          pp->name,

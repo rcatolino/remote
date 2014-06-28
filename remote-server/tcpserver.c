@@ -35,67 +35,63 @@ static int checkRet(int ret, int socketd) {
 }
 
 int initServer(int listen_port){
+  int listen_socketd;
+  uint16_t port;
+  struct sockaddr_in own_address;
+  int options = 1;
 
-	int listen_socketd;
-	uint16_t port;
-	struct sockaddr_in own_address;
-	int options = 1;
+  port = htons(listen_port);
+  listen_socketd = socket(AF_INET, SOCK_STREAM, 0);
+  if(listen_socketd == -1) {
+    perror("tcpserver: socket creation ");
+    return -1; //fail to create new socket
+  }
 
-	port = htons(listen_port);
-	listen_socketd = socket(AF_INET, SOCK_STREAM, 0);
+  if (setsockopt(listen_socketd,SOL_SOCKET,SO_REUSEADDR,&options,4)) {
+    perror("setsockopt ");
+  }
 
-	if(listen_socketd == -1) {
-		perror("socket creation ");
-		return -1; //fail to create new socket
-	}
-	if (setsockopt(listen_socketd,SOL_SOCKET,SO_REUSEADDR,&options,4)) {
-		perror("setsockopt ");
-	}
-	memset(&own_address,0,sizeof(struct sockaddr_in)); //clear struct
-	own_address.sin_family = AF_INET; //ipv4
-	own_address.sin_port = port; //listening port
-	own_address.sin_addr.s_addr = INADDR_ANY; //own address... 
+  memset(&own_address,0,sizeof(struct sockaddr_in)); //clear struct
+  own_address.sin_family = AF_INET; //ipv4
+  own_address.sin_port = port; //listening port
+  own_address.sin_addr.s_addr = INADDR_ANY; //own address
+  if (bind(listen_socketd, (struct sockaddr *) &own_address, sizeof(own_address)) < 0) {
+    perror("tcpserver: bind ");
+    return -1;
+  }
 
-	if (bind(listen_socketd, (struct sockaddr *) &own_address, sizeof(own_address)) < 0) {
-		//fail to name socket;
-		perror("bind ");
-		return -1;
-	}
+  if (listen(listen_socketd,1) < 0) {
+    perror("tcpserver: listen ");
+    return -1;
+  }
 
-	if (listen(listen_socketd,1) < 0)
-	{
-		perror("listen ");
-		return -1;
-	}
-	debug("Server listenning on port %d\n",ntohs(port));
+  debug("TCP Server listenning on port %d\n",ntohs(port));
   return listen_socketd;
 }
 
 int waitClient(int listen_socket){
+  int request_socketd;
+  socklen_t client_size = sizeof(client_address);
 
-	int request_socketd;
-
-	socklen_t client_size = sizeof(client_address);
-
-  request_socketd = accept(listen_socket,\
-    (struct sockaddr *) &client_address, &client_size);
-  if (request_socketd == -1)
-  {
-    perror("accept ");
+  request_socketd = accept(listen_socket, (struct sockaddr *) &client_address,
+                           &client_size);
+  if (request_socketd == -1) {
+    perror("tcpserver: accept ");
     return -1;
   }
-  debug("new connection\n");
+
+  debug("tcpserver: new connection\n");
   debug("\tremote address : %s\n", inet_ntoa(client_address.sin_addr));
   debug("\tremote port : %d\n", ntohs(client_address.sin_port));
   client_socket = request_socketd;
-	return request_socketd;
+  return request_socketd;
 }
 
 void closeClient(int client_sock){
 
   debug("Client deconected\n");
   shutdown(client_sock, SHUT_RDWR);
-	close(client_sock);
+  close(client_sock);
 }
 
 int receive(int socketd, char * buff, int size){
