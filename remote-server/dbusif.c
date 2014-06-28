@@ -6,7 +6,6 @@
 #include "utils.h"
 
 static int client_socket;
-
 GVariant * updateProperty(const struct proxyParams * pp,
                           const char * prop_name) {
   GError * error;
@@ -215,24 +214,26 @@ int createConnectionOnBus(struct proxyParams * pp, GCallback on_property_changed
   return 0;
 }
 
-void call(struct callParams *cp, GVariant *parameter) {
+void call_dbus(const struct proxyParams *pp, const char *method, GVariant *parameter) {
   GError *error;
   GVariant *ret;
 
-  if (!cp->proxy->proxy) {
-    debug("dbusif.c : Error, unconnected proxy %s.\n", cp->proxy->name);
+  if (!pp->proxy) {
+    debug("dbusif.c : Error, unconnected proxy %s.\n", pp->name);
     return;
   }
 
   if (parameter) {
-    debug("proxy adress : %p, object type : %s, argument %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy),g_variant_print(parameter, TRUE));
+    debug("proxy adress : %p, object type : %s, argument %s\n", pp->proxy,
+          G_OBJECT_TYPE_NAME(pp->proxy), g_variant_print(parameter, TRUE));
   } else {
-    debug("proxy adress : %p, object type : %s\n", cp->proxy->proxy, G_OBJECT_TYPE_NAME(cp->proxy->proxy));
+    debug("proxy adress : %p, object type : %s\n", pp->proxy,
+          G_OBJECT_TYPE_NAME(pp->proxy));
   }
 
   error = NULL;
-  ret = g_dbus_proxy_call_sync(G_DBUS_PROXY(cp->proxy->proxy),
-                               cp->method,
+  ret = g_dbus_proxy_call_sync(G_DBUS_PROXY(pp->proxy),
+                               method,
                                parameter,
                                G_DBUS_CALL_FLAGS_NONE,
                                -1,
@@ -243,6 +244,15 @@ void call(struct callParams *cp, GVariant *parameter) {
   } else {
     g_variant_unref(ret);
   }
+}
+
+void call(struct callParams *cp, GVariant *parameter) {
+  if (!cp || !cp->proxy->active) {
+    debug("dbusif.c : Error, bad call paramters for method %s.\n", cp->method);
+    return;
+  }
+
+  call_dbus(cp->proxy, cp->method, parameter);
 }
 
 void updateClientSocket(int socketd) {
