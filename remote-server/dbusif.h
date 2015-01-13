@@ -19,6 +19,8 @@ void closeConnection(struct proxyParams *pp);
 
 void call(struct callParams *cp, GVariant *parameter);
 
+void call_dbus(const struct proxyParams *pp, const char *method, GVariant *parameter);
+
 void updateClientSocket(int socketd);
 
 void printProxy(struct proxyParams *pp);

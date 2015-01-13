@@ -189,9 +189,11 @@ int createConnectionOnBus(struct proxyParams * pp, GCallback on_property_changed
                      G_CALLBACK(on_property_changed),
                      pp);
   }
+  /*
   g_signal_connect(proxy, "g-signal",
                    G_CALLBACK(onSignal),
                    pp);
+                   */
   if (on_name_owner_changed != NULL) {
     g_signal_connect(proxy, "notify::g-name-owner",
                      G_CALLBACK(on_name_owner_changed),
