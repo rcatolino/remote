@@ -5,7 +5,6 @@
 
 #include <unistd.h>
 
-#include "btserver.h"
 #include "config.h"
 #include "dbusif.h"
 #include "service-broadcast.h"
@@ -226,9 +225,8 @@ int main(int argc, char *argv[]) {
     goto error;
   }
 
-  // Start tcp server & bt server
+  // Start tcp server
   debug("\nProxies created !\nCreating network connection...\n");
-  btInitService();
   tcpsocketd = initServer(opt_port);
   if (tcpsocketd == -1) {
     goto out;

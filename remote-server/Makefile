@@ -10,7 +10,7 @@ ECHO:=@echo
 INCLUDES:=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
 				 -I/usr/lib/glib-2.0/include/
 
-EOBJ:=btserver.o tcpserver.o remote-base.o config.o dbusif.o mpris.o mpris-command.o\
+EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o mpris-command.o\
 			service-broadcast.o
 LIBS:=libsmdp.a -ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lbluetooth
 HOST:=$(shell uname)-$(shell uname -m)

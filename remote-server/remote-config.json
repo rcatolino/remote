@@ -82,29 +82,18 @@
   },
 
   {
-    "profile-name" : "xbmc",
+    "profile-name" : "okular",
     "profile-data" : [
       {
-        "app" : "xbmc",
-        "dbus-name" : "org.mpris.MediaPlayer2.xbmc",
-        "path" : "/org/mpris/MediaPlayer2",
-        "interface" : "org.mpris.MediaPlayer2.Player",
+        "app" : "okular",
+        "dbus-name" : "org.kde.okular-18555",
+        "path" : "/okular",
+        "interface" : "org.kde.okular",
         "cmds" : {
-          "PLAY" : "Play",
-          "PAUSE" : "Pause",
-          "STOP" : "Stop",
-          "PREV" : "Previous",
-          "NEXT" : "Next"
-        },
-        "feedback" : "mpris"
-      },
-      {
-        "app" : "power-management",
-        "dbus-name" : "org.freedesktop.PowerManagement",
-        "path" : "/org/freedesktop/PowerManagement",
-        "interface" : "org.freedesktop.PowerManagement",
-        "cmds" : {
-          "SLEEP" : "Suspend"
+          "VOLUMEDOWN" : "slotPreviousPage",
+          "VOLUMEUP" : "slotNextPage",
+          "PREV" : "slotPreviousPage",
+          "NEXT" : "slotNextPage"
         }
       }
     ]
