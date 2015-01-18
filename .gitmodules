@@ -1,3 +1,4 @@
 [submodule "smdp"]
 	path = smdp
 	url = http://github.com/rcatolino/smdp.git
+  branch = master
