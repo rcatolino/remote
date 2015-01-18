@@ -190,7 +190,7 @@ char * getProfiles() {
   json_t * obj;
   json_t * name;
   json_t * data;
-  int i = 0;
+  unsigned int i = 0;
   int count = 0;
   const char ** profiles_name;
   char * buff;
@@ -233,7 +233,7 @@ char * getProfiles() {
 
 static int isValidProfileArray(const json_t * data, json_t ** out_name,
                                json_t ** out_data, const char * name) {
-  int i;
+  unsigned int i;
   int ret = 0;
   json_t * obj;
   *out_name = NULL;
@@ -317,7 +317,7 @@ int parseConfig(struct proxyParams ** pp, GHashTable * hash_table) {
   struct proxyParams * tmp;
   json_t * obj;
   int ret;
-  int i = 0;
+  unsigned int i = 0;
 
   if (data == NULL) {
     debug("Config file not loaded\n");

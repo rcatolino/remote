@@ -8,7 +8,6 @@
 #include "config.h"
 #include "dbusif.h"
 #include "service-broadcast.h"
-#include "streaming-server.h"
 #include "tcpserver.h"
 #include "utils.h"
 
@@ -138,19 +137,6 @@ int handle_command(int client_sock, char *buff, GHashTable *call_table, struct p
     updateMprisClientSocket(client_sock);
     sendCachedData();
   }
-#ifdef AUDIO_FEEDBACK
-  else if (strlen(buff) >= STREAMING_ON_REQ_SZ &&
-             strncmp(buff, STREAMING_ON_REQ, STREAMING_ON_REQ_SZ) == 0) {
-    startStreaming(loop, getClientAddress());
-  } else if (strlen(buff) >= STREAMING_OFF_REQ_SZ &&
-             strncmp(buff, STREAMING_OFF_REQ, STREAMING_OFF_REQ_SZ) == 0) {
-    pauseStreaming();
-  } else if (strlen(buff) >= STREAMING_STOP_SZ &&
-             strncmp(buff, STREAMING_STOP, STREAMING_STOP_SZ) == 0) {
-    deleteStreamingServer();
-  }
-#endif
-
   return 0;
 }
 
@@ -207,7 +193,7 @@ int main(int argc, char *argv[]) {
   loop = g_main_loop_new(NULL, FALSE);
 
   // Configuration file parsing/loading/treatment.
-  // (This creates all the dbus interface)
+  // (This creates all the dbus interfaces)
   call_table = g_hash_table_new_full(g_str_hash, g_str_equal,
                                      (GDestroyNotify)free, (GDestroyNotify)free);
   if(loadConfig(opt_config_file) == -1) {
@@ -257,9 +243,6 @@ error:
   g_error_free(error);
 out:
   g_free(opt_config_file);
-#ifdef AUDIO_FEEDBACK
-  deleteStreamingServer();
-#endif
   g_main_loop_unref(loop);
   g_hash_table_unref(call_table);
   return 0;

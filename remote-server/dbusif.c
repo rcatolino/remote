@@ -105,25 +105,21 @@ void printProxy(struct proxyParams * pp)
   g_free (name_owner);
 }
 
-static void onSignal(GDBusProxy *proxy,
-                     gchar      *sender_name,
-                     gchar      *signal_name,
-                     GVariant   *parameters,
-                     gpointer    pp)
-{
+void onSignal(GDBusProxy *proxy,
+              gchar      *sender_name,
+              gchar      *signal_name,
+              GVariant   *parameters,
+              gpointer    pp) {
   gchar *parameters_str;
 
   parameters_str = g_variant_print(parameters, TRUE);
-  debug(" *** Received Signal: %s: %s\n",
-        signal_name,
-        parameters_str);
+  debug(" *** Received Signal: %s: %s\n", signal_name, parameters_str);
   g_free(parameters_str);
 }
 
-static void onNameOwnerNotify(GObject    *object,
+static void onNameOwnerNotify(GObject *object,
                               GParamSpec *pspec,
-                              struct proxyParams * pp)
-{
+                              struct proxyParams *pp) {
   char * name_owner = g_dbus_proxy_get_name_owner(pp->proxy);
   debug("onNameOwnerNotify : change!%d\n", pp->active);
   if (name_owner) {

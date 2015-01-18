@@ -2,6 +2,7 @@
 #define TCPSERVER_H__
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define FILE_BUF_SIZE 10000
 
@@ -18,10 +19,10 @@ int waitClient(int listen_socket);
 void closeClient(int client_sock);
 // Terminates a connection.
 
-int receive(int socketd, char * buff, int size);
+int receive(int socketd, char * buff, size_t size);
 // Waits for data on the connection. Blocking.
 
-int transmit(int socketd, char * buff, int size);
+int transmit(int socketd, char * buff, size_t size);
 // Sends data on the connection. Blocking.
 
 int transmitMsg(int socketd, char * buff, uint32_t size, char * head, uint32_t head_size);

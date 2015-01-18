@@ -148,7 +148,7 @@ void volume_down(struct callParams *cp, const char *argument_buff) {
 int fillMprisCallTable(GHashTable *call_table, const struct proxyParams *proxy) {
   char *key;
   struct callParams *tmp;
-  int i;
+  unsigned int i;
 
   debug("Creating standard mpris command config\n");
   for (i = 0; i < sizeof(mpris_cmds)/sizeof(mpris_cmds[0]); i++) {

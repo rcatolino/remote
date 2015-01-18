@@ -21,7 +21,7 @@ static struct sockaddr_in client_address;
 static int client_socket;
 static GMutex mutex;
 
-static int checkRet(int ret, int socketd) {
+static int checkRet(int ret) {
   if (ret==0){
     // Client is shutting down.
     return -1;
@@ -94,17 +94,18 @@ void closeClient(int client_sock){
   close(client_sock);
 }
 
-int receive(int socketd, char * buff, int size){
+int receive(int socketd, char * buff, size_t buff_size){
   size_t ret = 0;
   size_t cmd_size = 0;
   size_t bytes_rcv = 0;
   // Receive the size of the command.
-  ret=recv(socketd, (void*)(&cmd_size), sizeof(cmd_size), 0);
-  if (checkRet(ret, socketd) == -1) {
+  ret = recv(socketd, (void*)(&cmd_size), sizeof(cmd_size), 0);
+  if (checkRet(ret) == -1) {
     return -1;
   }
+
   cmd_size = be64toh(cmd_size);
-  if (cmd_size > MAX_CMD_SIZE) {
+  if (cmd_size > buff_size) {
     debug("Invalid command size, host endian : %ld, network endian : %ld\n",
           cmd_size, htobe64(cmd_size));
     return -1;
@@ -113,7 +114,7 @@ int receive(int socketd, char * buff, int size){
   for (bytes_rcv=0; bytes_rcv<cmd_size; ){
     ret=recv(socketd, (void*)(buff+bytes_rcv), cmd_size-bytes_rcv, 0);
     bytes_rcv+=ret;
-    if (checkRet(ret, socketd) == -1 || bytes_rcv > MAX_CMD_SIZE) {
+    if (checkRet(ret) == -1 || bytes_rcv > buff_size) {
       return -1;
     }
   }
@@ -164,8 +165,8 @@ int transmitFile(int socketd, const char * path) {
   int image;
   int ret;
   struct stat info;
-  uint32_t size = 0;
-  uint32_t nsize = 0;
+  ssize_t size = 0;
+  ssize_t nsize = 0;
   char * buff;
 
   if (socketd == 0) {
@@ -195,7 +196,7 @@ int transmitFile(int socketd, const char * path) {
   buff = malloc(size);
   ret = read(image, buff, size);
   if (ret != size) {
-    debug("could not read whole file : ret = %d, size = %u\n", ret, size);
+    debug("could not read whole file : ret = %d, size = %zd\n", ret, size);
     if (ret == -1) {
       perror("read ");
     }
@@ -210,7 +211,7 @@ int transmitFile(int socketd, const char * path) {
     goto out_buff;
   }
 
-  debug("Sending file : %u bytes\n", size);
+  debug("Sending file : %zd bytes\n", size);
   if (send(socketd, buff, size, 0) == -1) {
     g_mutex_unlock(&mutex);
     perror("send file ");
@@ -230,7 +231,7 @@ out_fd:
   return -1;
 }
 
-int transmit(int socketd, char * buff, int size) {
+int transmit(int socketd, char * buff, size_t size) {
   return transmitMsg(socketd, buff, size, NULL, 0);
 }
 

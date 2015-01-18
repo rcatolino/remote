@@ -2,7 +2,7 @@ CC:=gcc #Compiler
 EDL:=gcc #Linker
 AR:=ar #Archiver
 ARFLAGS:=rcs
-CCFLAGS:=-Wall -g #Compiler options
+CCFLAGS:=-Wall -Wextra -Wno-unused-parameter -g #Compiler options
 EDLFLAGS:=-Wall -g #Linker options
 EXE=remote-server #Binary name
 DEFINES:=-D DEBUG #Preprocessor definitions
@@ -25,9 +25,9 @@ L_SMDP:=./libsmdp.a
 # Additional stuff depending on the options :
 ifdef AUDIO_FEEDBACK
 	DEFINES:=$(DEFINES) -D AUDIO_FEEDBACK
-	LIBS:=$(LIBS) -lgstreamer-1.0
-	INCLUDES:=$(INCLUDES) -I/usr/include/gstreamer-1.0/
-	EOBJ:=$(EOBJ) streaming-server.o
+	LIBS:=$(LIBS)
+	INCLUDES:=$(INCLUDES)
+	EOBJ:=$(EOBJ)
 endif
 
 $(EXE): setup $(EOBJ)
