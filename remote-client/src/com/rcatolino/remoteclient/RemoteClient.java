@@ -148,8 +148,13 @@ public class RemoteClient extends FragmentActivity
 
     public void onDismiss(DialogInterface dialog) {
       d = (ConnectionDialog) dialog;
-      if (d.shouldConnect() && !connected) {
-        new Connector(parent).connect(d.getHost(), d.getPort(), 1500);
+      try {
+        int port = d.getPort();
+        if (d.shouldConnect() && !connected) {
+          new Connector(parent).connect(d.getHost(), d.getPort(), 1500);
+        }
+      } catch (NumberFormatException e) {
+        Toast.makeText(parent, R.string.invalid_port, Toast.LENGTH_LONG).show();
       }
     }
 

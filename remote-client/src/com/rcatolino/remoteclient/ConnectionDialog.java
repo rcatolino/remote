@@ -57,7 +57,7 @@ public class ConnectionDialog extends Dialog implements OnClickListener {
     portET.setText(String.valueOf(port));
   }
 
-  public int getPort() {
+  public int getPort() throws NumberFormatException {
     return Integer.parseInt(portET.getText().toString());
   }
 
