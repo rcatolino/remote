@@ -12,23 +12,12 @@ INCLUDES:=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
 
 EOBJ:=tcpserver.o remote-base.o config.o dbusif.o mpris.o mpris-command.o\
 			service-broadcast.o
-LIBS:=libsmdp.a -ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0 -lbluetooth
+LIBS:=libsmdp.a -ljansson -lglib-2.0 -lgio-2.0 -lgobject-2.0 -lgthread-2.0
 HOST:=$(shell uname)-$(shell uname -m)
 SMDP:=../smdp/src/$(HOST)/libsmdp.a
 L_SMDP:=./libsmdp.a
 
 .PHONY: setup smdp
-# Build options :
-#AUDIO_FEEDBACK=1
-#AUDIO_CODEC_FLAC=1 #flac and vorbis supported. Vorbis is the default
-
-# Additional stuff depending on the options :
-ifdef AUDIO_FEEDBACK
-	DEFINES:=$(DEFINES) -D AUDIO_FEEDBACK
-	LIBS:=$(LIBS)
-	INCLUDES:=$(INCLUDES)
-	EOBJ:=$(EOBJ)
-endif
 
 $(EXE): setup $(EOBJ)
 	@echo building $@

@@ -5,6 +5,7 @@
 #include <ifaddrs.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <stdio.h>
@@ -59,7 +60,8 @@ int addr_change(int nl_sock, struct sockaddr_nl * nladdr) {
   // See man 3 netlink for the macros
   length = recvmsg(nl_sock, &hdr, sizeof(hdr));
   debug("Message received!\n");
-  for (nlhdr = (struct nlmsghdr *)buff; NLMSG_OK(nlhdr, length); nlhdr = NLMSG_NEXT(nlhdr, length)) {
+  for (nlhdr = (struct nlmsghdr *)buff; NLMSG_OK(nlhdr, length);
+       nlhdr = NLMSG_NEXT(nlhdr, length)) {
     debug("Parsing message\n");
     if (nlhdr->nlmsg_type == NLMSG_DONE) {
       debug("Netlink, end of multipart message\n");
@@ -87,13 +89,14 @@ int addr_change(int nl_sock, struct sockaddr_nl * nladdr) {
   return ret;
 }
 
-int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr, const struct service_t * service) {
+int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr,
+               const struct service_t * service) {
   switch (poll(fds, 2, -1)) {
       case -1 :
-        derror("wait_for_answer error, poll ");
+        derror("wait_for_query error, poll ");
         return -1;
       case 0 :
-        debug("wait_for_answer timeout\n");
+        debug("wait_for_query timeout\n");
         return 0;
       default :
         if (fds[0].revents & POLLIN) {
@@ -103,7 +106,10 @@ int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr, const struct s
             return 1;
           }
         } else if (fds[1].revents & POLLIN) {
-          return wait_for_query(fds[1].fd, service);
+          int ret;
+          debug("\nNew event on multicast socket\n\n");
+          ret = wait_for_query(fds[1].fd, service, 1);
+          return (ret == 1) ? -1 : ret;
         }
         break;
   }
@@ -113,8 +119,11 @@ int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr, const struct s
 
 int init_service(struct service_t * service, const char * port) {
   char ad[AD_SZ];
+  struct in_addr local_addr = {.s_addr = INADDR_ANY};
+  int ifindex = 0;
   struct ifaddrs * iflist;
   struct ifaddrs * interface;
+  int socket = 0;
 
 	if (getifaddrs(&iflist) == -1) {
 		debug("serviceBroadcast, failed to get iflist\n");
@@ -122,7 +131,7 @@ int init_service(struct service_t * service, const char * port) {
 	}
 
 	debug("Available interfaces :\n");
-	for (interface = iflist; interface != NULL; interface = interface->ifa_next){
+	for (interface = iflist; interface != NULL; interface = interface->ifa_next) {
 		struct sockaddr_in* addr;
 		char loopback[] = "127.0.0.1";
     char localA[] = "10.";
@@ -133,8 +142,10 @@ int init_service(struct service_t * service, const char * port) {
 		}
 
 		addr = (struct sockaddr_in*)interface->ifa_addr;
+    local_addr = addr->sin_addr;
+    ifindex = if_nametoindex(interface->ifa_name);
     inet_ntop(AF_INET, &addr->sin_addr, ad, AD_SZ);
-		debug("\t%s : %s\n", interface->ifa_name, ad);
+		debug("\t%s[%d] : %s\n", interface->ifa_name, ifindex, ad);
 		if (strcmp(ad, loopback) != 0 &&
         (strncmp(ad, localA, sizeof(localA)-1) == 0 ||
          strncmp(ad, localB, sizeof(localB)-1) == 0 ||
@@ -146,19 +157,25 @@ int init_service(struct service_t * service, const char * port) {
 	}
 
 	freeifaddrs(iflist);
+  debug("serviceBroadcast, start broadcasting\n");
+  socket = start_broadcast_server(local_addr, ifindex);
+  if (socket == -1) {
+    debug("Couldn't start broadcast server");
+    return -1;
+  }
+
   debug("Creating service : %s://%s:%s\n", PROTO, ad, port);
   if (create_service(service, ID, PROTO, ad, port) == -1) {
     debug("serviceBroadcast, error in create_service\n");
     return -1;
   }
 
-  return 0;
+  return socket;
 }
 
 void *serviceBroadcast(void *args) {
   struct service_t service;
   char port[PORT_SZ];
-  int socket;
   int stop = 0;
   int reinit_needed = 1;
 
@@ -174,26 +191,19 @@ void *serviceBroadcast(void *args) {
     return NULL;
   }
 
-  nl_sock = netlink_init(&nladdr);
-  debug("serviceBroadcast, start broadcasting\n");
-  socket = start_broadcast_server();
-  if (socket == -1) {
-    debug("Couldn't start broadcast server");
-    return NULL;
-  }
-
   if (snprintf(port, PORT_SZ, "%d", *(int*)args) == -1) {
     debug("serviceBroadcast, error, bad port\n");
     return NULL;
   }
 
+  nl_sock = netlink_init(&nladdr);
   fds[0].fd = nl_sock;
-  fds[1].fd = socket;
   fds[0].events = POLLIN;
-  fds[1].events = POLLIN;
 
   while (reinit_needed) {
-    if (init_service(&service, port) == -1) {
+    fds[1].fd = init_service(&service, port);
+    fds[1].events = POLLIN;
+    if ( fds[1].fd == -1) {
       debug("Couldn't initialize service\n");
       return NULL;
     }
@@ -214,7 +224,7 @@ void *serviceBroadcast(void *args) {
 
       if (stop) continue;
 
-      if (send_service_broadcast(socket, &service) == -1) {
+      if (send_service_broadcast(fds[1].fd, &service) == -1) {
         debug("serviceBroadcast, failed sending broadcasting service\n");
         stop = 1;
         break;
@@ -222,6 +232,7 @@ void *serviceBroadcast(void *args) {
     }
 
     delete_service(&service);
+    stop_broadcast_server(fds[1].fd);
   }
   return args;
 }
