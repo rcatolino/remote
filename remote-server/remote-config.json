@@ -29,12 +29,12 @@
         }
       },
       {
-        "app" : "power-management",
-        "dbus-name" : "org.freedesktop.PowerManagement",
-        "path" : "/org/freedesktop/PowerManagement",
-        "interface" : "org.freedesktop.PowerManagement",
+        "app" : "suspend",
+        "dbus-name" : "com.dbsleep.SleepCtl",
+        "path" : "/SleepCtl",
+        "interface" : "com.dbsleep.SleepCtl",
         "cmds" : {
-          "SLEEP" : "Suspend"
+          "SLEEP" : "Sleep"
         }
       }
     ]
@@ -70,12 +70,12 @@
         }
       },
       {
-        "app" : "power-management",
-        "dbus-name" : "org.freedesktop.PowerManagement",
-        "path" : "/org/freedesktop/PowerManagement",
-        "interface" : "org.freedesktop.PowerManagement",
+        "app" : "suspend",
+        "dbus-name" : "com.dbsleep.SleepCtl",
+        "path" : "/SleepCtl",
+        "interface" : "com.dbsleep.SleepCtl",
         "cmds" : {
-          "SLEEP" : "Suspend"
+          "SLEEP" : "Sleep"
         }
       }
     ]

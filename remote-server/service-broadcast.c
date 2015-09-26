@@ -3,6 +3,7 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <ifaddrs.h>
+#include <libmnl/libmnl.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
@@ -22,74 +23,70 @@
 #define PORT_SZ 6
 #define AD_SZ 16
 
-int netlink_init(struct sockaddr_nl * addr) {
-  int ret;
-  int nl_sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-  if (!nl_sock) {
-    perror("netlink socket error ");
-    return -1;
-  }
+/*
+int nlmsg_cb(struct nlattr* attr, void *data) {
+  if (attr->nlmsg_type == NLMSG_ERROR) {
+    struct nlmsgerr * err;
+    // parse the nlmsgerr in the payload
+    err = (struct nlmsgerr *) NLMSG_DATA(nlhdr);
+    debug("Netlink error : %s\n", strerror(err->error));
+    continue;
+  } else if (nlhdr->nlmsg_type == NLMSG_NOOP) {
+    debug("Netlink noop\n");
+    continue;
+  } else if (nlhdr->nlmsg_type == RTM_NEWADDR) {
+    debug("RTM_NEWADDR\n");
+    ret = 1;
+  } else if (nlhdr->nlmsg_type == RTM_DELADDR) {
+    debug("RTM_DELADDR\n");
+    ret = 1;
+  } else if (ret == 0) debug("nlmsg_type : %d\n", nlhdr->nlmsg_type);
 
-  memset(addr, 0, sizeof(struct sockaddr_nl));
-  addr->nl_family = AF_NETLINK;
-  addr->nl_groups = /*RTMGRP_LINK | */RTMGRP_IPV4_IFADDR/* | RTMGRP_IPV4_ROUTE*/;
-  // see linux/rtnetlink.h
-  ret = bind(nl_sock, (struct sockaddr *)addr, sizeof(struct sockaddr_nl));
-  if (ret == -1) {
-    perror("netlink bind failed ");
-    return -1;
-  }
-
-  return nl_sock;
+  return MNL_CB_OK;
 }
+*/
 
-int addr_change(int nl_sock, struct sockaddr_nl * nladdr) {
+int addr_change(struct mnl_socket* nls) {
   int ret = 0;
-  struct nlmsghdr * nlhdr; // See linux/netlink.h
-  int length;
-  char buff[4096];
-  struct iovec msg_iov = {buff, sizeof(buff)}; // See bits/uio.h
-  struct msghdr hdr = {nladdr, sizeof(struct sockaddr_nl),
-                       &msg_iov, sizeof(msg_iov),
-                       NULL, 0, // No ancillary data
-                       0}; // No flags
-                      // See bits/socket.h
+  ssize_t length;
+  int len = 0;
+  char buff[MNL_SOCKET_BUFFER_SIZE];
 
   debug("Netlink, waiting for next message\n");
   // The following loop receive a potentially multipart message
   // See man 3 netlink for the macros
-  length = recvmsg(nl_sock, &hdr, sizeof(hdr));
-  debug("Message received!\n");
-  for (nlhdr = (struct nlmsghdr *)buff; NLMSG_OK(nlhdr, length);
-       nlhdr = NLMSG_NEXT(nlhdr, length)) {
-    debug("Parsing message\n");
-    if (nlhdr->nlmsg_type == NLMSG_DONE) {
-      debug("Netlink, end of multipart message\n");
-      break;
-    }
+  // length = recvmsg(nl_sock, &hdr, sizeof(hdr));
+  if((length = mnl_socket_recvfrom(nls, buff, sizeof(buff))) == -1) {
+      perror("netlink recvfrom error ");
+      return -1;
+  }
 
-    if (nlhdr->nlmsg_type == NLMSG_ERROR) {
-      struct nlmsgerr * err;
-      // parse the nlmsgerr in the payload
-      err = (struct nlmsgerr *) NLMSG_DATA(nlhdr);
-      debug("Netlink error : %s\n", strerror(err->error));
-      continue;
-    } else if (nlhdr->nlmsg_type == NLMSG_NOOP) {
-      debug("Netlink noop\n");
-      continue;
-    } else if (nlhdr->nlmsg_type == RTM_NEWADDR) {
-      debug("RTM_NEWADDR\n");
-      ret = 1;
-    } else if (nlhdr->nlmsg_type == RTM_DELADDR) {
-      debug("RTM_DELADDR\n");
-      ret = 1;
-    } else if (ret == 0) debug("nlmsg_type : %d\n", nlhdr->nlmsg_type);
+  debug("Message received!\n");
+
+  for (struct nlmsghdr* nlhdr = (struct nlmsghdr *)buff;
+       mnl_nlmsg_ok(nlhdr, length);
+       nlhdr = mnl_nlmsg_next(nlhdr, &len)) {
+    debug("Parsing message %d\n", len);
+    mnl_nlmsg_fprintf(stdout, nlhdr, length, 0);
+    // Assume its an adress change :
+    ret = 1;
+
+    /*
+    switch (mnl_attr_pars(nlhdr, 0, nlmsg_cb, NULL)) {
+      case MNL_CB_ERROR:
+        return -1;
+      case MNL_CB_OK:
+        return 1;
+      case MNL_CB_STOP:
+        return 0;
+    }
+    */
   }
 
   return ret;
 }
 
-int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr,
+int wait_event(struct pollfd fds[2], struct mnl_socket* nls,
                const struct service_t * service) {
   switch (poll(fds, 2, -1)) {
       case -1 :
@@ -101,7 +98,7 @@ int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr,
       default :
         if (fds[0].revents & POLLIN) {
           debug("New netlink event!\n");
-          if (addr_change(fds[0].fd, nladdr)) {
+          if (addr_change(nls)) {
             debug("We have to change the service address\n");
             return 1;
           }
@@ -109,11 +106,12 @@ int wait_event(struct pollfd fds[2], struct sockaddr_nl * nladdr,
           int ret;
           debug("\nNew event on multicast socket\n\n");
           ret = wait_for_query(fds[1].fd, service, 1);
-          return (ret == 1) ? -1 : ret;
+          return (ret == 1) ? -1 : 2;
         }
         break;
   }
 
+  debug("Uninteresting event\n");
   return 0;
 }
 
@@ -180,8 +178,7 @@ void *serviceBroadcast(void *args) {
   int reinit_needed = 1;
 
   // Netlink attributes :
-  int nl_sock;
-  struct sockaddr_nl nladdr;
+  struct mnl_socket *nls;
 
   // poll attribute :
   struct pollfd fds[2];
@@ -196,8 +193,17 @@ void *serviceBroadcast(void *args) {
     return NULL;
   }
 
-  nl_sock = netlink_init(&nladdr);
-  fds[0].fd = nl_sock;
+  if ((nls = mnl_socket_open(NETLINK_ROUTE)) == (void*)-1) {
+    perror("netlink handle open error ");
+    return NULL;
+  }
+
+  if (mnl_socket_bind(nls, RTMGRP_IPV4_IFADDR, 0)) {
+    perror("netlink socket bind error ");
+    return NULL;
+  }
+
+  fds[0].fd = mnl_socket_get_fd(nls);
   fds[0].events = POLLIN;
 
   while (reinit_needed) {
@@ -211,23 +217,25 @@ void *serviceBroadcast(void *args) {
     stop = 0;
 
     while (!stop) {
-      switch (wait_event(fds, &nladdr, &service)) {
+      switch (wait_event(fds, nls, &service)) {
         case -1 :
           debug("serviceBroadcast, failed waiting for query\n");
-          stop = 1;
+          // stop = 1; Don't stop because a message is invalid
           break;
         case 1 :
           reinit_needed = 1;
           stop = 1;
           break;
-      }
-
-      if (stop) continue;
-
-      if (send_service_broadcast(fds[1].fd, &service) == -1) {
-        debug("serviceBroadcast, failed sending broadcasting service\n");
-        stop = 1;
-        break;
+        case 0 :
+          stop = 0;
+          break;
+        case 2 :
+          if (send_service_broadcast(fds[1].fd, &service) == -1) {
+            debug("serviceBroadcast, failed sending broadcasting service\n");
+            stop = 1;
+            break;
+          }
+          break;
       }
     }
 
