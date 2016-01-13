@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
+import android.net.wifi.WifiManager.MulticastLock;
 import android.util.Log;
 
 import com.rcatolino.smdp.Smdp;
@@ -30,11 +32,14 @@ public class Connector extends Thread {
   private RemoteClient parent;
   private SynchronousQueue<Boolean> networkStateQueue;
   private ConnectivityManager connectionManager;
+  private MulticastLock multicastLock;
 
   public Connector(RemoteClient parent) {
     connected = false;
     this.parent = parent;
     connectionManager = (ConnectivityManager) parent.getSystemService(Context.CONNECTIVITY_SERVICE);
+    WifiManager wm = (WifiManager) parent.getSystemService(Context.WIFI_SERVICE);
+    multicastLock = wm.createMulticastLock("multicastLock");
   }
 
   public void run() {
@@ -93,6 +98,7 @@ public class Connector extends Thread {
       Log.d(LOGTAG, "Created service");
       smdp.startBroadcastServer();
       Log.d(LOGTAG, "server started");
+      multicastLock.acquire();
     }
 
     final RemoteClient parent = this.parent;
@@ -125,6 +131,13 @@ public class Connector extends Thread {
       return;
     } else {
       Log.d(LOGTAG, "Timed out waiting for an answer");
+    }
+
+    if (smdp != null) {
+      smdp.stopBroadcastServer();
+      if (multicastLock.isHeld()) {
+        multicastLock.release();
+      }
     }
   }
 
