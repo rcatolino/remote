@@ -89,7 +89,7 @@ int waitClient(int listen_socket){
 
 void closeClient(int client_sock){
 
-  debug("Client deconected\n");
+  printf("Client deconected\n");
   shutdown(client_sock, SHUT_RDWR);
   close(client_sock);
 }

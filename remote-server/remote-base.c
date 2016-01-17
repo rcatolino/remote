@@ -51,7 +51,7 @@ int createProfile(const char *profile, GHashTable *call_table, struct proxyParam
 
   if(profile_name == NULL || parseConfig(pp, call_table) == -1 || *pp == NULL) {
     // Bad config file, proxy/method specifications error.
-    debug("Config error!\n");
+    printf("Config error!\n");
     return -1;
   }
 
@@ -172,6 +172,7 @@ int handle_client(int client_sock, GHashTable *call_table, struct proxyParams *p
 int main(int argc, char *argv[]) {
   int tcpsocketd;
   struct proxyParams *pp;
+  int ret = 0;
 
   GHashTable *call_table;
   GError *error = NULL;
@@ -198,16 +199,19 @@ int main(int argc, char *argv[]) {
                                      (GDestroyNotify)free, (GDestroyNotify)free);
   if(loadConfig(opt_config_file) == -1) {
     // Bad config file, json syntax error.
+    ret = 1;
     goto out;
   }
 
   if (createProfile(NULL, call_table, &pp) == -1) {
+    ret = 2;
     goto out;
   }
 
   callback_thread = g_thread_try_new("loop", processEvents, loop, &error);
   if (!callback_thread) {
-    debug("Error creating event loop thread : %s\n", error->message);
+    printf("Error creating event loop thread : %s\n", error->message);
+    ret = 5;
     goto error;
   }
 
@@ -215,6 +219,7 @@ int main(int argc, char *argv[]) {
   debug("\nProxies created !\nCreating network connection...\n");
   tcpsocketd = initServer(opt_port);
   if (tcpsocketd == -1) {
+    ret = 3;
     goto out;
   }
 
@@ -223,7 +228,7 @@ int main(int argc, char *argv[]) {
     svc_broadcast_thread = g_thread_try_new("loop", serviceBroadcast, &port, &error);
   }
   if (!svc_broadcast_thread) {
-    debug("Error creating service broadcast thread : %s\n", error->message);
+    printf("Error creating service broadcast thread : %s\n", error->message);
     g_error_free(error);
   }
 
@@ -232,6 +237,7 @@ int main(int argc, char *argv[]) {
     int clients = waitClient(tcpsocketd);
     if (clients == -1) {
       // We can't connect to a client.
+      ret = 4;
       goto out;
     }
 
@@ -245,5 +251,5 @@ out:
   g_free(opt_config_file);
   g_main_loop_unref(loop);
   g_hash_table_unref(call_table);
-  return 0;
+  return ret;
 }

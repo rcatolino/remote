@@ -5,7 +5,7 @@ ARFLAGS:=rcs
 CCFLAGS:=-Wall -Wextra -Wno-unused-parameter -g #Compiler options
 EDLFLAGS:=-Wall -g #Linker options
 EXE=remote-server #Binary name
-DEFINES:=-D DEBUG #Preprocessor definitions
+DEFINES:=-D NODEBUG #Preprocessor definitions
 ECHO:=@echo
 INCLUDES:=-I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include/\
 				 -I/usr/lib/glib-2.0/include/

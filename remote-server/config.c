@@ -286,7 +286,9 @@ const char * chooseProfile(const char * name) {
     debug("No profile available");
     if (name) {
       debug(" for name %s\n", name);
-    } else debug(".\n");
+    } else {
+      debug(".\n");
+    }
     return NULL;
   }
 
